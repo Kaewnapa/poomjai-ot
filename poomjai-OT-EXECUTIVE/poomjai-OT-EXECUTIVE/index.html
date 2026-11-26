@@ -14,7 +14,7 @@ button.ghost:hover{border-color:#b9c2cd}
 select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .login{min-height:80vh;display:flex;align-items:center;justify-content:center}
 .login-card{background:#fff;padding:36px 34px;border-radius:16px;box-shadow:0 8px 30px rgba(20,40,80,.08);width:360px;text-align:center;display:flex;flex-direction:column;gap:12px}
-.login-card h1{font-size:20px}.logo{width:52px;height:52px;border-radius:14px;background:var(--accent);color:#fff;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 4px}
+.login-card h1{font-size:20px}.logo{height:48px;padding:0 22px;border-radius:14px;background:var(--accent);color:#fff;font-weight:800;font-size:20px;letter-spacing:.3px;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 4px;align-self:center;white-space:nowrap}
 .login-card input{padding:11px 12px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px}
 .err{color:var(--warn);min-height:18px;font-size:13px}
 .loading{min-height:60vh;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;color:var(--ink2)}
@@ -346,7 +346,7 @@ const S = { data: null, month: '', group: 'ALL', deptOpen: '', sortKey: 'ot', lo
 function showLogin() {
   $('#app').innerHTML = `
   <div class="login"><div class="login-card">
-    <div class="logo">PJ</div>
+    <div class="logo">Poomjai Group</div>
     <h1>รายงานสรุปสำหรับผู้บริหาร</h1>
     <p class="muted">OT และ ขาด–ลา–มาสาย รายเดือน แยกโรงงาน / แผนก</p>
     <input id="pw" type="password" placeholder="รหัสเข้าสู่ระบบ" autocomplete="current-password">
