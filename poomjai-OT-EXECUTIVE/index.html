@@ -91,6 +91,13 @@ footer{margin-top:6px;font-size:12px}
 .nt{font-size:10.5px;color:var(--ink2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:10px 0 4px}.cal-legend span{display:inline-flex;align-items:center;gap:6px}.cal-legend i{border:1px solid #d5dae0}
 .ot-h{font-size:14px;margin:14px 0 6px}.note-c{white-space:normal!important;max-width:320px;color:var(--ink2)}
+.mtabs{display:flex;gap:4px;background:#f1f3f6;border-radius:10px;padding:3px}
+.mtab{background:transparent;color:var(--ink2);font-weight:500;padding:6px 12px;border-radius:8px}
+.mtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.mchart{margin-top:4px}.mchart .mb{cursor:pointer}.mchart .mb:hover path{opacity:1}
+.mchart .bv{font-size:11.5px;fill:#3d434a;font-weight:600}.mchart .bv.sel{fill:#191919;font-weight:800}.mchart .axs{font-weight:700;fill:#191919}
+.mtbl{margin-top:10px;font-size:12.5px}.mtbl td,.mtbl th{padding:5px 8px}.mtbl td:first-child{color:var(--ink2)}.mtbl .selc{background:#eaf2fd;font-weight:700}
+.sheet .mcard{border:1px solid var(--line);margin:4px 0 14px}
 @media (max-width:1000px){.kpis{grid-template-columns:repeat(4,1fr)}.factories{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tops{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.cal-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.factories,.tops{grid-template-columns:1fr}.top h1{font-size:19px}.bar-row{grid-template-columns:110px 1fr 54px}}
 @media print{body{background:#fff}.no-print,#drawer,.tip{display:none!important}#app{padding:0;max-width:none}.card,.kpi,.fcard{break-inside:avoid;box-shadow:none}.kpis{grid-template-columns:repeat(7,1fr)}}
@@ -456,15 +463,11 @@ function render() {
 
   ${S.group === 'ALL' && !S.scope ? factoryCards(month) : ''}
 
-  <section class="grid2">
-    <div class="card">
-      <div class="card-h"><h2>${S.scope ? 'OT รายคน (ชั่วโมง)' : 'OT รายแผนก (ชั่วโมง)'}</h2><span class="muted">${gLabel} · ${mShort(month)}</span></div>
-      ${S.scope ? empBars(recs) : deptBars(recs)}
-    </div>
-    <div class="card">
-      <div class="card-h"><h2>แนวโน้ม OT รายเดือน</h2><span class="muted">${gLabel}</span></div>
-      ${trendChart()}
-    </div>
+  ${monthCard('main', seriesOf(inView), 'กราฟสรุปรายเดือน', gLabel)}
+
+  <section class="card">
+    <div class="card-h"><h2>${S.scope ? 'OT รายคน (ชั่วโมง)' : 'OT รายแผนก (ชั่วโมง)'}</h2><span class="muted">${gLabel} · ${mShort(month)}</span></div>
+    ${S.scope ? empBars(recs) : deptBars(recs)}
   </section>
 
   <section class="card">
@@ -497,6 +500,7 @@ function render() {
   document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => openDept(el.dataset.dept));
   if (S.scope && S.scope.length > 1 && !S.dept) document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => { S.dept = el.dataset.dept; render(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { S.sortKey = el.dataset.sort; render(); });
+  bindMonthCard('main', (m) => { S.month = m; render(); window.scrollTo(0, 0); });
   bindTips(); bindEmp();
 }
 
@@ -528,6 +532,50 @@ function deptBars(recs) {
       <div class="bar-v">${fmt(r.ot)}</div></div>`;
   }).join('')}</div>
   ${S.group === 'ALL' ? `<div class="legend">${GROUPS.map(g => `<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')}</div>` : ''}`;
+}
+
+// ---------- monthly chart (ภาพรวม + รายบุคคล) ----------
+const inView = (r) => (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (S.group === 'ALL' || groupOf[r.dept] === S.group);
+const METRICS = [
+  { k: 'ot', l: 'OT', u: 'ชม.', c: '#257de0' }, { k: 'late', l: 'มาสาย', u: 'ครั้ง', dp: 0, c: '#d9534f' },
+  { k: 'absent', l: 'ขาดงาน', u: 'วัน', c: '#c62828' }, { k: 'personal', l: 'ลากิจ', u: 'วัน', c: '#7b61c9' }, { k: 'sick', l: 'ลาป่วย', u: 'วัน', c: '#00a389' }
+];
+const MC = {};
+function seriesOf(filter) {
+  return S.monthsAvail.map(m => { const t = total(S.data.recs.filter(r => r.month === m && filter(r)));
+    return { m, n: t.n, ot: t.ot, late: t.late, absent: t.absentDays + t.absentHours / 8, personal: t.personal, sick: t.sick, otPeople: t.otPeople }; });
+}
+function monthCard(key, series, title, sub) {
+  MC[key] = Object.assign(MC[key] || {}, { series, metric: (MC[key] && MC[key].metric) || 'ot', title, sub });
+  return `<section class="card mcard" id="mc-${key}">${monthCardInner(key)}</section>`;
+}
+function monthCardInner(key) {
+  const st = MC[key], mt = METRICS.find(x => x.k === st.metric), sr = st.series;
+  const W = 760, H = 250, L = 48, R = 10, Tp = 24, B = 30;
+  const vals = sr.map(s => s[mt.k]); const raw = Math.max(...vals, 0) * 1.1 || 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw / 4))); const stepV = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s * 4 >= raw); const max = stepV * 4;
+  const slot = (W - L - R) / sr.length, bw = Math.min(46, slot * 0.62);
+  const y = (v) => Tp + (H - Tp - B) * (1 - v / max);
+  let g = ''; for (let i = 0; i <= 4; i++) { const v = stepV * i; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${L - 6}" y="${y(v) + 4}" class="ax" text-anchor="end">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>`; }
+  const sel = sr.findIndex(s => s.m === (key === 'emp' ? MC.emp.cur : S.month));
+  const bars = sr.map((s, i) => { const v = s[mt.k], cx = L + slot * i + slot / 2, top = y(v), cur = s.m === S.data.nowPrefix;
+    return `<g class="mb" data-m="${s.m}" data-tip="${mLong(s.m)}${cur ? ' (ยังไม่ครบเดือน)' : ''}|${mt.l} ${fmt(v, mt.dp === 0 ? 0 : 1)} ${mt.u}${mt.k === 'ot' && s.n ? ` · เฉลี่ย ${fmt(s.ot / s.n)} ชม./คน` : ''}">
+      <rect x="${L + slot * i}" y="${Tp}" width="${slot}" height="${H - Tp - B}" fill="transparent"/>
+      ${v > 0 ? (y(0) - top >= 5 ? `<path d="M${cx - bw / 2},${y(0)} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${y(0)} Z" fill="${mt.c}" opacity="${i === sel ? 1 : cur ? 0.45 : 0.78}"/>` : `<rect x="${cx - bw / 2}" y="${y(0) - 2}" width="${bw}" height="2" fill="${mt.c}"/>`) : ''}
+      ${v > 0 ? `<text x="${cx}" y="${top - 5}" text-anchor="middle" class="bv${i === sel ? ' sel' : ''}">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>` : ''}
+      <text x="${cx}" y="${H - 10}" text-anchor="middle" class="ax${i === sel ? ' axs' : ''}">${mShort(s.m)}${cur ? '*' : ''}</text></g>`; }).join('');
+  const row = (m) => `<tr><td>${m.l} (${m.u})</td>${sr.map(s => `<td class="num${s.m === (key === 'emp' ? MC.emp.cur : S.month) ? ' selc' : ''}">${s[m.k] ? fmt(s[m.k], m.dp === 0 ? 0 : 1) : '–'}</td>`).join('')}<td class="num strong">${fmt(sr.reduce((t, s) => t + s[m.k], 0), m.dp === 0 ? 0 : 1)}</td></tr>`;
+  return `<div class="card-h"><div><h2>${st.title}</h2><span class="muted">${st.sub} · ทุกเดือนที่มีข้อมูล · คลิกแท่งเพื่อเปิดเดือนนั้น</span></div>
+    <div class="mtabs no-print">${METRICS.map(m => `<button class="mtab ${m.k === st.metric ? 'on' : ''}" data-mk="${m.k}">${m.l}</button>`).join('')}</div></div>
+    <svg viewBox="0 0 ${W} ${H}" class="trend mchart">${g}<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="#c9d0d8"/>${bars}</svg>
+    ${sr.some(s => s.m === S.data.nowPrefix) ? '<div class="muted" style="font-size:12px">* เดือนปัจจุบัน ยังไม่ครบเดือน · OT มีข้อมูลตั้งแต่ ส.ค.69</div>' : ''}
+    <div class="tbl-wrap"><table class="tbl mtbl"><thead><tr><th></th>${sr.map(s => `<th class="num">${mShort(s.m)}</th>`).join('')}<th class="num">รวม</th></tr></thead><tbody>${METRICS.map(row).join('')}</tbody></table></div>`;
+}
+function bindMonthCard(key, onMonth) {
+  const box = document.getElementById('mc-' + key); if (!box) return;
+  box.querySelectorAll('.mtab').forEach(b => b.onclick = (e) => { e.stopPropagation(); MC[key].metric = b.dataset.mk; box.innerHTML = monthCardInner(key); bindMonthCard(key, onMonth); });
+  box.querySelectorAll('.mb').forEach(g => g.onclick = () => onMonth(g.dataset.m));
+  bindTips();
 }
 
 function trendChart() {
@@ -607,6 +655,7 @@ function openEmp(dept, empId, month) {
   const merged = (S.data.mergedBy[dept] || new Map()).get(String(empId)) || new Map();
   const rec = S.data.recs.find(r => r.month === month && r.dept === dept && r.empId === String(empId)) || {};
   const name = rec.name || (S.data.recs.find(r => r.empId === String(empId)) || {}).name || empId;
+  MC.emp = Object.assign(MC.emp || {}, { cur: month });
   const days = S.data.E.dayList(String(empId), merged, month);
   const [y, m] = month.split('-').map(Number); const lead = new Date(y, m - 1, 1).getDay();
   const otDays = days.filter(d => d.ot > 0);
@@ -637,6 +686,8 @@ function openEmp(dept, empId, month) {
       <div><span>ขาดงาน</span><b>${daysTxt(rec.absentDays || 0, rec.absentHours || 0)}</b></div>
       <div><span>ลากิจ / ลาป่วย</span><b>${fmt(rec.personal || 0)} / ${fmt(rec.sick || 0)} วัน</b></div>
     </div>
+    ${monthCard('emp', seriesOf(r => r.empId === String(empId) && r.dept === dept), 'กราฟรายเดือนของ ' + esc(name), esc(dept))}
+    <h3 class="ot-h">ปฏิทิน ${mLong(month)}</h3>
     <div class="cal-wrap"><div class="cal">
       ${WD.map((w, k) => `<div class="wh ${k === 0 || k === 6 ? 'we' : ''}">${w}</div>`).join('')}
       ${'<div class="cd empty-c"></div>'.repeat(lead)}${days.map(cell).join('')}
@@ -646,6 +697,7 @@ function openEmp(dept, empId, month) {
       ${otDays.map(d => `<tr><td>${WD[new Date(d.iso + 'T00:00:00').getDay()]} ${d.d} ${TMS[m - 1]}${d.holiday ? ' (วันหยุด)' : ''}</td><td>${esc(d.tin)}</td><td>${esc(d.tout)}</td><td>${d.shift === 'night' ? 'ดึก' : 'เช้า'}</td><td class="num strong">${fmt(d.ot)}</td><td class="note-c">${esc(d.note)}</td></tr>`).join('')}
       </tbody><tfoot><tr><td colspan="4">รวม ${otDays.length} วัน</td><td class="num">${fmt(otDays.reduce((s, d) => s + d.ot, 0))}</td><td></td></tr></tfoot></table></div>` : '<div class="empty">เดือนนี้ไม่มีวันที่ทำ OT</div>'}
   </div></div>`;
+  bindMonthCard('emp', (mm) => openEmp(dept, empId, mm));
   $('#backDept').onclick = () => openDept(dept);
   if (prev) $('#pm').onclick = () => openEmp(dept, empId, prev);
   if (next) $('#nm').onclick = () => openEmp(dept, empId, next);
