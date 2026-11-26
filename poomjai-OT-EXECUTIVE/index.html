@@ -315,7 +315,19 @@ function buildAll(D, fromPrefix) {
 
 // ===== Executive dashboard UI =====
 const DB = 'https://poomjai-ot-default-rtdb.asia-southeast1.firebasedatabase.app';
-const PASSCODE = 'PJ2569';
+// รหัสเข้าสู่ระบบ: PJ2569 = ผู้บริหาร เห็นทุกแผนก / รหัสแผนก = เห็นเฉพาะแผนกของตน
+// แก้รหัสหรือเพิ่มได้ที่นี่ (1 รหัสใส่ได้หลายแผนก)
+const ACCESS = {
+  'PJ2569': null,                                                    // ผู้บริหาร — ทุกแผนก
+  'PJ001': ['ACCOUNT', 'STORE'],                                     // คัคนางค์
+  'PJ002': ['PURCHASE'],                                             // สุภาพร
+  'PJ003': ['PLANNER', 'MANUAL', 'CNC', 'WIRE CUT', 'PJT1'],         // คำรณ
+  'PJ004': ['DESIGN'],                                               // ศุภฤกษ์
+  'PJ005': ['SALE & MARKETTING', 'AUTOMATION & ASSEMBLY', 'JIG-FIXTURE'], // ประภาส
+  'PJ006': ['INJECTION'],                                            // โรง 2
+  'PJ007': ['AUTOMATION MACHINE PJT'],                               // โรง 4
+  'PJ008': ['DCI']                                                   // โรง 5 Production
+};
 const GROUPS = [
   { key: 'PJE', label: 'PJE (โรง 1)', color: '#257de0' },
   { key: 'INJ', label: 'Injection', color: '#f47230' },
@@ -340,7 +352,8 @@ const mLong = (p) => { const [y, m] = p.split('-').map(Number); return `${TM[m -
 const mShort = (p) => { const [y, m] = p.split('-').map(Number); return `${TMS[m - 1]}${String(y + 543).slice(-2)}`; };
 const daysTxt = (d, h) => { let s = `${fmt(d)} วัน`; if (h > 0) s += ` (+${fmt(h)} ชม.)`; return s; };
 
-const S = { data: null, month: '', group: 'ALL', deptOpen: '', sortKey: 'ot', loading: false };
+const S = { data: null, month: '', group: 'ALL', deptOpen: '', sortKey: 'ot', loading: false, scope: null };
+const findCode = (v) => Object.keys(ACCESS).find(k => k.toUpperCase() === String(v || '').trim().toUpperCase());
 
 // ---------- login ----------
 function showLogin() {
@@ -354,7 +367,8 @@ function showLogin() {
     <div id="err" class="err"></div>
   </div></div>`;
   const go = () => {
-    if ($('#pw').value.trim().toUpperCase() === PASSCODE) { try { sessionStorage.setItem('execOK', '1'); } catch (e) {} start(); }
+    const code = findCode($('#pw').value);
+    if (code) { S.scope = ACCESS[code]; S.group = 'ALL'; try { sessionStorage.setItem('execOK', code); } catch (e) {} start(); }
     else $('#err').textContent = 'รหัสไม่ถูกต้อง';
   };
   $('#go').onclick = go; $('#pw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -393,7 +407,7 @@ async function start() {
 // ---------- aggregation ----------
 const blank = () => ({ n: 0, ot: 0, late: 0, absentDays: 0, absentHours: 0, personal: 0, sick: 0, vacation: 0, otPeople: 0 });
 function add(a, r) { a.n++; a.ot += r.ot; a.late += r.late; a.absentDays += r.absentDays; a.absentHours += r.absentHours; a.personal += r.personal; a.sick += r.sick; a.vacation += r.vacation; if (r.ot > 0) a.otPeople++; }
-const recsOf = (month, group) => S.data.recs.filter(r => r.month === month && (group === 'ALL' || groupOf[r.dept] === group));
+const recsOf = (month, group) => S.data.recs.filter(r => r.month === month && (!S.scope || S.scope.includes(r.dept)) && (group === 'ALL' || groupOf[r.dept] === group));
 function total(recs) { const t = blank(); recs.forEach(r => add(t, r)); return t; }
 function byDept(recs) { const m = {}; recs.forEach(r => add(m[r.dept] || (m[r.dept] = blank()), r)); return m; }
 
@@ -410,12 +424,12 @@ function render() {
     const pct = (cur - old) / old * 100; const up = pct >= 0;
     return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${fmt(Math.abs(pct), 0)}% จาก ${mShort(prev)}</span>`;
   };
-  const gLabel = S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label;
+  const gLabel = S.scope ? S.scope.join(', ') : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
 
   $('#app').innerHTML = `
   <header class="top">
     <div>
-      <div class="eyebrow">Poomjai Group · รายงานสำหรับผู้บริหาร</div>
+      <div class="eyebrow">Poomjai Group · ${S.scope ? 'รายงานแผนก ' + esc(S.scope.join(', ')) : 'รายงานสำหรับผู้บริหาร'}</div>
       <h1>สรุป OT และ ขาด–ลา–มาสาย · ${mLong(month)}</h1>
       <div class="muted">${sub}</div>
     </div>
@@ -426,9 +440,9 @@ function render() {
       <button id="logout" class="ghost">ออก</button>
     </div>
   </header>
-  <nav class="chips no-print">
+  ${S.scope ? '' : `<nav class="chips no-print">
     ${[{ key: 'ALL', label: 'ทั้งบริษัท' }, ...GROUPS].map(g => `<button class="chip ${S.group === g.key ? 'on' : ''}" data-g="${g.key}">${g.color ? `<i style="background:${g.color}"></i>` : ''}${g.label}</button>`).join('')}
-  </nav>
+  </nav>`}
 
   <section class="kpis">
     ${kpi('พนักงาน', fmt(T.n, 0), 'คน', `${gLabel}`)}
@@ -440,12 +454,12 @@ function render() {
     ${kpi('ลาป่วย', fmt(T.sick), 'วัน', '')}
   </section>
 
-  ${S.group === 'ALL' ? factoryCards(month) : ''}
+  ${S.group === 'ALL' && !S.scope ? factoryCards(month) : ''}
 
   <section class="grid2">
     <div class="card">
-      <div class="card-h"><h2>OT รายแผนก (ชั่วโมง)</h2><span class="muted">${gLabel} · ${mShort(month)}</span></div>
-      ${deptBars(recs)}
+      <div class="card-h"><h2>${S.scope ? 'OT รายคน (ชั่วโมง)' : 'OT รายแผนก (ชั่วโมง)'}</h2><span class="muted">${gLabel} · ${mShort(month)}</span></div>
+      ${S.scope ? empBars(recs) : deptBars(recs)}
     </div>
     <div class="card">
       <div class="card-h"><h2>แนวโน้ม OT รายเดือน</h2><span class="muted">${gLabel}</span></div>
@@ -454,8 +468,9 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="card-h"><h2>รายละเอียดทุกแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>
-    ${deptTable(recs)}
+    ${S.scope && S.scope.length > 1 ? `<div class="card-h"><h2>รายละเอียดแต่ละแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>${deptTable(recs)}</section><section class="card">` : ''}
+    ${S.scope ? `<div class="card-h"><h2>รายชื่อพนักงาน</h2><span class="muted no-print">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวัน</span></div>${empTable(recs)}`
+      : `<div class="card-h"><h2>รายละเอียดทุกแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>${deptTable(recs)}`}
   </section>
 
   <section class="card">
@@ -557,14 +572,25 @@ function top5(recs, title, val, label) {
   return `<div class="top"><h3>Top 5 ${title}</h3>${list.length ? `<ol>${list.map(r => `<li class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><div><b>${esc(r.name)}</b><small>${esc(r.dept)}</small></div><span>${label(r)}</span></li>`).join('')}</ol>` : '<div class="empty">— ไม่มีข้อมูล —</div>'}</div>`;
 }
 
+function empTable(recs) {
+  recs = recs.slice().sort((a, b) => b.ot - a.ot);
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th class="num">OT (ชม.)</th><th class="num">วันที่ทำ OT</th><th class="num">มาสาย</th><th class="num">ขาดงาน</th><th class="num">ลากิจ</th><th class="num">ลาป่วย</th><th class="num">พักร้อน</th></tr></thead>
+    <tbody>${recs.map(r => `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td class="num strong">${fmt(r.ot)}</td><td class="num">${fmt(r.otDays, 0)}</td><td class="num ${r.late ? 'warn' : ''}">${fmt(r.late, 0)}</td><td class="num ${r.absentDays || r.absentHours ? 'warn' : ''}">${r.absentDays || r.absentHours ? daysTxt(r.absentDays, r.absentHours) : '0'}</td><td class="num">${fmt(r.personal)}</td><td class="num">${fmt(r.sick)}</td><td class="num">${fmt(r.vacation)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function empBars(recs) {
+  const rows = recs.filter(r => r.ot > 0).sort((a, b) => b.ot - a.ot).slice(0, 15);
+  if (!rows.length) return '<div class="empty">ไม่มีข้อมูล OT</div>';
+  const max = Math.max(...rows.map(r => r.ot), 1);
+  return `<div class="bars">${rows.map(r => `<div class="bar-row" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}" data-tip="${esc(r.name)}|OT ${fmt(r.ot)} ชม. · ${fmt(r.otDays, 0)} วัน"><div class="bar-l">${esc(r.name)}</div><div class="bar-t"><div class="bar-f" style="width:${Math.max(0.5, r.ot / max * 100)}%;background:#257de0"></div></div><div class="bar-v">${fmt(r.ot)}</div></div>`).join('')}</div>${recs.filter(r => r.ot > 0).length > 15 ? '<div class="muted" style="font-size:12px;margin-top:6px">แสดง 15 อันดับแรก</div>' : ''}`;
+}
+
 function openDept(dept) {
   const recs = S.data.recs.filter(r => r.month === S.month && r.dept === dept).sort((a, b) => b.ot - a.ot);
   const t = total(recs);
   $('#drawer').innerHTML = `<div class="ov" onclick="if(event.target===this)this.parentNode.innerHTML=''"><div class="sheet">
     <div class="card-h"><div><h2>${esc(dept)} · ${mLong(S.month)}</h2><div class="muted">${fmt(t.n, 0)} คน · OT ${fmt(t.ot)} ชม. · มาสาย ${fmt(t.late, 0)} ครั้ง · ขาด ${daysTxt(t.absentDays, t.absentHours)} · ลากิจ ${fmt(t.personal)} วัน · ลาป่วย ${fmt(t.sick)} วัน</div></div>
     <button class="ghost" onclick="document.getElementById('drawer').innerHTML=''">ปิด ✕</button></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th class="num">OT (ชม.)</th><th class="num">วันที่ทำ OT</th><th class="num">มาสาย</th><th class="num">ขาดงาน</th><th class="num">ลากิจ</th><th class="num">ลาป่วย</th><th class="num">พักร้อน</th></tr></thead>
-    <tbody>${recs.map(r => `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td class="num strong">${fmt(r.ot)}</td><td class="num">${fmt(r.otDays, 0)}</td><td class="num ${r.late ? 'warn' : ''}">${fmt(r.late, 0)}</td><td class="num ${r.absentDays || r.absentHours ? 'warn' : ''}">${r.absentDays || r.absentHours ? daysTxt(r.absentDays, r.absentHours) : '0'}</td><td class="num">${fmt(r.personal)}</td><td class="num">${fmt(r.sick)}</td><td class="num">${fmt(r.vacation)}</td></tr>`).join('')}</tbody></table></div>
+    ${empTable(recs)}
   </div></div>`;
   bindEmp();
 }
@@ -635,6 +661,6 @@ function bindTips() {
 }
 
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#drawer')) $('#drawer').innerHTML = ''; });
-(function boot() { let ok = false; try { ok = sessionStorage.getItem('execOK') === '1'; } catch (e) {} ok ? start() : showLogin(); })();
+(function boot() { let code = ''; try { code = findCode(sessionStorage.getItem('execOK')); } catch (e) {} if (code) { S.scope = ACCESS[code]; start(); } else showLogin(); })();
 
 </script></body></html>
