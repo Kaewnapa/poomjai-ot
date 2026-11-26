@@ -368,7 +368,7 @@ function showLogin() {
   </div></div>`;
   const go = () => {
     const code = findCode($('#pw').value);
-    if (code) { S.scope = ACCESS[code]; S.group = 'ALL'; try { sessionStorage.setItem('execOK', code); } catch (e) {} start(); }
+    if (code) { S.scope = ACCESS[code]; S.group = 'ALL'; S.dept = ''; try { sessionStorage.setItem('execOK', code); } catch (e) {} start(); }
     else $('#err').textContent = 'รหัสไม่ถูกต้อง';
   };
   $('#go').onclick = go; $('#pw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -407,7 +407,7 @@ async function start() {
 // ---------- aggregation ----------
 const blank = () => ({ n: 0, ot: 0, late: 0, absentDays: 0, absentHours: 0, personal: 0, sick: 0, vacation: 0, otPeople: 0 });
 function add(a, r) { a.n++; a.ot += r.ot; a.late += r.late; a.absentDays += r.absentDays; a.absentHours += r.absentHours; a.personal += r.personal; a.sick += r.sick; a.vacation += r.vacation; if (r.ot > 0) a.otPeople++; }
-const recsOf = (month, group) => S.data.recs.filter(r => r.month === month && (!S.scope || S.scope.includes(r.dept)) && (group === 'ALL' || groupOf[r.dept] === group));
+const recsOf = (month, group) => S.data.recs.filter(r => r.month === month && (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (group === 'ALL' || groupOf[r.dept] === group));
 function total(recs) { const t = blank(); recs.forEach(r => add(t, r)); return t; }
 function byDept(recs) { const m = {}; recs.forEach(r => add(m[r.dept] || (m[r.dept] = blank()), r)); return m; }
 
@@ -424,7 +424,7 @@ function render() {
     const pct = (cur - old) / old * 100; const up = pct >= 0;
     return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${fmt(Math.abs(pct), 0)}% จาก ${mShort(prev)}</span>`;
   };
-  const gLabel = S.scope ? S.scope.join(', ') : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
+  const gLabel = S.dept ? S.dept : S.scope ? (S.scope.length > 1 ? 'ภาพรวม ' + S.scope.length + ' แผนก' : S.scope[0]) : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
 
   $('#app').innerHTML = `
   <header class="top">
@@ -440,7 +440,7 @@ function render() {
       <button id="logout" class="ghost">ออก</button>
     </div>
   </header>
-  ${S.scope ? '' : `<nav class="chips no-print">
+  ${S.scope ? (S.scope.length > 1 ? `<nav class="chips dchips no-print">${[{ k: '', l: `ภาพรวม (${S.scope.length} แผนก)` }, ...S.scope.map(d => ({ k: d, l: d }))].map(c => `<button class="chip ${S.dept === c.k ? 'on' : ''}" data-d="${esc(c.k)}">${esc(c.l)}</button>`).join('')}</nav>` : '') : `<nav class="chips no-print">
     ${[{ key: 'ALL', label: 'ทั้งบริษัท' }, ...GROUPS].map(g => `<button class="chip ${S.group === g.key ? 'on' : ''}" data-g="${g.key}">${g.color ? `<i style="background:${g.color}"></i>` : ''}${g.label}</button>`).join('')}
   </nav>`}
 
@@ -468,7 +468,7 @@ function render() {
   </section>
 
   <section class="card">
-    ${S.scope && S.scope.length > 1 ? `<div class="card-h"><h2>รายละเอียดแต่ละแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>${deptTable(recs)}</section><section class="card">` : ''}
+    ${S.scope && S.scope.length > 1 && !S.dept ? `<div class="card-h"><h2>สรุปแยกแต่ละแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายงานของแผนกนั้น</span></div>${deptTable(recs)}</section><section class="card">` : ''}
     ${S.scope ? `<div class="card-h"><h2>รายชื่อพนักงาน</h2><span class="muted no-print">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวัน</span></div>${empTable(recs)}`
       : `<div class="card-h"><h2>รายละเอียดทุกแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>${deptTable(recs)}`}
   </section>
@@ -492,8 +492,10 @@ function render() {
   $('#refresh').onclick = () => start();
   $('#print').onclick = () => window.print();
   $('#logout').onclick = () => { try { sessionStorage.removeItem('execOK'); } catch (e) {} showLogin(); };
-  document.querySelectorAll('.chip').forEach(b => b.onclick = () => { S.group = b.dataset.g; render(); });
+  document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.group = b.dataset.g; render(); });
+  document.querySelectorAll('.chip[data-d]').forEach(b => b.onclick = () => { S.dept = b.dataset.d; render(); });
   document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => openDept(el.dataset.dept));
+  if (S.scope && S.scope.length > 1 && !S.dept) document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => { S.dept = el.dataset.dept; render(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { S.sortKey = el.dataset.sort; render(); });
   bindTips(); bindEmp();
 }
