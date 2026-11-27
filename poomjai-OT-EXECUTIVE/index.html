@@ -129,7 +129,7 @@ const ENGINE = (() => {
       if (/ลาป่วย|ป่วย/.test(t)) lt = /ใบรับรอง|ใบแพทย์|มีใบ/.test(t) ? 'sick_cert' : 'sick';
       else if (/ลากิจ/.test(t)) lt = 'personal'; else if (/พักร้อน/.test(t)) lt = 'vacation';
       if (!lt) return null;
-      return { leaveType: lt, leaveDuration: /ครึ่ง/.test(t) ? 'half' : (/ชม|ชั่วโมง/.test(t) ? 'hour' : 'day') };
+      return { leaveType: lt, leaveDuration: /ครึ่ง|0\.5\s*วัน/.test(t) ? 'half' : (/ชม|ชั่วโมง/.test(t) ? 'hour' : 'day'), reason: t };
     };
     const leaveHours = (r) => {
       if (!r || !r.leaveType) return 0; const dur = r.leaveDuration || 'day';
@@ -199,7 +199,7 @@ const ENGINE = (() => {
           else if (isImport && ((r.timeIn && r.timeOut && /ไม่ได้สแกนนิ้ว|สแกนครั้งเดียว|สแกนนิ้วขาเดียว|สแกนขาเดียว/.test(next.reason || '')) || /^\s*(มา)?สาย\s*$|^\s*ขาด(งาน)?\s*$/.test(next.reason || '')) && later(savedAt, prev._rAt)) { next.reason = ''; next._rAt = savedAt; }
           const nl = isImport && !r.leaveType ? inferLeave(r.reason) : null;
           const lt = r.leaveType || (nl && nl.leaveType) || '';
-          if (!fromEmployee && lt && later(savedAt, prev._lAt)) { next.leaveType = lt; next.leaveDuration = r.leaveType ? r.leaveDuration : nl.leaveDuration; next.leaveStart = r.leaveStart; next.leaveEnd = r.leaveEnd; next._lAt = savedAt; }
+          if (!fromEmployee && lt && later(savedAt, prev._lAt)) { next.leaveType = lt; next.leaveDuration = r.leaveType ? r.leaveDuration : nl.leaveDuration; next.leaveStart = r.leaveStart; next.leaveEnd = r.leaveEnd; next.leaveReason = r.reason || ''; next._lAt = savedAt; }
           if (later(savedAt, prev._sAt)) { next.shift = r.shift; next.skippedBreak = r.skippedBreak; next._sAt = savedAt; }
           byDate.set(r.date, next);
         });
@@ -231,7 +231,7 @@ const ENGINE = (() => {
         const iso = `${prefix}-${pad(d)}`; if (iso >= todayIso) break;
         const row = merged.get(iso) || {}; const hr = (G.hrAtt || {})[`${id}_${iso}`] || {};
         const lt = row.leaveType || hr.leaveType || '';
-        if (lt) { const src = row.leaveType ? row : hr; const hrs = leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd }); if (fieldOf[lt]) st[fieldOf[lt]] += hrs / 8; continue; }
+        if (lt) { const src = row.leaveType ? row : hr; const hrs = leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd, reason: src.leaveReason || src.reason }); if (fieldOf[lt]) st[fieldOf[lt]] += hrs / 8; continue; }
         if (isWeekend(iso)) continue;
         if (row.normalAttend || hr.ack) continue;
         if (!row.timeIn && !row.timeOut && row.hrNote && !/ขาด|ไม่ได้สแกน|สแกนครั้งเดียว|สแกนนิ้วขาเดียว|สแกนขาเดียว|^\s*(มา)?สาย\s*$/.test(row.hrNote)) continue;
@@ -267,7 +267,7 @@ const ENGINE = (() => {
             else if (shift !== 'night') { const lr = lateRule(tin, note); late = lr.late; ah = lr.ah; ad = lr.ad; }
           }
         }
-        out.push({ iso, d, tin, tout, ot, shift, lt, ld, leaveHrs: lt ? leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd }) : 0,
+        out.push({ iso, d, tin, tout, ot, shift, lt, ld, leaveHrs: lt ? leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd, reason: src.leaveReason || src.reason }) : 0,
           wk, holiday, note, late, ah, ad, absent, future: iso >= todayIso });
       }
       return out;
@@ -279,17 +279,29 @@ const ENGINE = (() => {
 
 // Build every month × department × employee record
 // D: { holidays, startDates, hrAtt, depts:[{prefix,label,group,rows,history,monthlyLeave,roster}] }
+// พนักงานที่ได้รับยกเว้นการสแกนนิ้ว: นับเป็นพนักงานทุกเดือน ไม่นับขาดงานจากการไม่สแกน แต่ยังนับลา/ขาดจากหมายเหตุ
+const SCAN_EXEMPT = { '450822': 'SALE & MARKETTING' };
 function buildAll(D, fromPrefix) {
   const rosterHire = {};
   D.depts.forEach(d => (d.roster || []).forEach(r => { if (r && r.empId && r.hireDate) rosterHire[String(r.empId).trim()] = r.hireDate; }));
   const E = ENGINE.make({ holidays: D.holidays, startDates: D.startDates, hrAtt: D.hrAtt, rosterHire });
   const months = []; let [y, m] = fromPrefix.split('-').map(Number);
   while (`${y}-${ENGINE.pad(m)}` <= E.nowPrefix) { months.push(`${y}-${ENGINE.pad(m)}`); m++; if (m > 12) { m = 1; y++; } }
+  const hrActive = new Set(); Object.keys(D.hrAtt || {}).forEach(k => { const v = D.hrAtt[k] || {}; if (v.actualTimeIn || v.leaveType) { const i = k.lastIndexOf('_'); hrActive.add(k.slice(0, i) + '_' + k.slice(i + 1, i + 8)); } });
+  const G_hr = (id, prefix) => hrActive.has(id + '_' + prefix);
   const mergedBy = {};
+  // พนักงานอยู่แผนกไหน ยึดตามรายชื่อ (_rows) — คนที่มีแค่ใน history ของแผนกอื่นจะไม่ถูกนับซ้ำ
+  const rosterOf = {};
+  D.depts.forEach(d => (d.rows || []).forEach(r => { if (r && r.empId) { const id = String(r.empId).trim(); (rosterOf[id] = rosterOf[id] || new Set()).add(d.label); } }));
+  // เดือนแรกที่มีข้อมูลสแกนในระบบ (ก่อนหน้านั้นใช้รายชื่อ + สรุปที่นำเข้าเหมือนเดิม)
+  let scanFrom = '';
+  D.depts.forEach(d => (d.history || []).forEach(h => (h.rows || []).forEach(r => { if (r && r.date && (r.timeIn || r.timeOut) && (!scanFrom || r.date < scanFrom)) scanFrom = r.date; })));
+  scanFrom = scanFrom.slice(0, 7);
   const recs = []; // {month, dept, group, empId, name, ot, otDays, late, absentDays, absentHours, personal, sick, vacation}
   D.depts.forEach(d => {
     const merged = E.mergeDept(d.history); mergedBy[d.label] = merged;
     const names = {}; const rosterIds = new Set();
+    Object.keys(SCAN_EXEMPT).forEach(id => { if (SCAN_EXEMPT[id] === d.label) rosterIds.add(id); });
     (d.rows || []).forEach(r => { if (r && r.empId) { const id = String(r.empId).trim(); rosterIds.add(id); names[id] = r.name || names[id]; } });
     merged.forEach((byDate, id) => { if (!names[id]) { for (const v of byDate.values()) { if (v.name) { names[id] = v.name; break; } } } });
     const ml = (d.monthlyLeave || []).filter(r => r && r.empId && r.month);
@@ -301,16 +313,26 @@ function buildAll(D, fromPrefix) {
       rosterIds.forEach(id => { const sd = E.startOf(id); if (!sd || sd <= monthEnd) ids.add(id); });
       merged.forEach((byDate, id) => { for (const k of byDate.keys()) { if (k.startsWith(prefix)) { ids.add(id); break; } } });
       ml.forEach(r => { if (r.month === label) ids.add(String(r.empId).trim()); });
+      const importedIds = new Set(ml.filter(r => r.month === label).map(r => String(r.empId).trim()));
       ids.forEach(id => {
+        // คนที่อยู่ในรายชื่อแผนกอื่น ไม่นับในแผนกนี้
+        if (!rosterIds.has(id) && rosterOf[id] && !rosterOf[id].has(d.label)) return;
+        // ตัดคนลาออก: ตั้งแต่เดือนที่มีข้อมูลสแกน ต้องมีสแกน/การลาในเดือนนั้น หรือมีสรุปที่นำเข้า
+        // (ยกเว้นคนในรายชื่อที่ไม่เคยสแกนเลย เช่น ผู้ที่ได้รับยกเว้นการสแกน หรือพนักงานใหม่ที่ยังไม่เริ่มสแกน)
+        if (scanFrom && prefix >= scanFrom && !importedIds.has(id)) {
+          const mgx = merged.get(id); let active = false, everScan = false;
+          if (mgx) mgx.forEach((v, k) => { if (v.timeIn || v.timeOut) { everScan = true; if (k.startsWith(prefix)) active = true; } else if (k.startsWith(prefix) && v.leaveType) active = true; });
+          if (!active && !(G_hr(id, prefix))) { if (everScan || !rosterIds.has(id)) return; }
+        }
         const mg = merged.get(id) || new Map();
         const o = E.monthOt(id, mg, prefix);
         const s = { vacation: 0, personal: 0, sickNoCert: 0, sickCert: 0, absentDays: 0, lateCount: 0, absentHours: 0 };
         const imported = ml.filter(r => String(r.empId).trim() === id && r.month === label);
         // นับขาด/ลา/มาสายจากใบลงเวลา เฉพาะคนที่มีเวลาสแกนในเดือนนั้น (คนที่ไม่ต้องสแกน/ยังไม่เริ่มงาน ไม่ถูกนับขาดทั้งเดือน)
         let scanned = false, first = '';
-        mg.forEach((v, k) => { if (v.timeIn || v.timeOut) { if (!first || k < first) first = k; if (k.startsWith(prefix)) scanned = true; } });
-        if (prefix >= ENGINE.TIMESHEET_FROM && (prefix === E.nowPrefix || !imported.length) && scanned) {
-          const t = E.monthStats(id, mg, prefix, first); Object.keys(s).forEach(k => s[k] += t[k] || 0);
+        mg.forEach((v, k) => { if (v.timeIn || v.timeOut) { if (!first || k < first) first = k; if (k.startsWith(prefix)) scanned = true; } else if (v.leaveType && k.startsWith(prefix)) scanned = true; });
+        if (prefix >= ENGINE.TIMESHEET_FROM && (prefix === E.nowPrefix || !imported.length) && (scanned || SCAN_EXEMPT[id])) {
+          const t = E.monthStats(id, mg, prefix, SCAN_EXEMPT[id] ? '9999-99-99' : first); Object.keys(s).forEach(k => s[k] += t[k] || 0);
         }
         if (prefix < E.nowPrefix) imported.forEach(r => Object.keys(s).forEach(k => s[k] += parseFloat(r[k]) || 0));
         recs.push({ month: prefix, dept: d.label, group: d.group, empId: id, name: names[id] || id, ot: o.ot, otDays: o.otDays,
