@@ -9,6 +9,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Sarabun','Noto Sans Thai
 .muted{color:var(--ink2);font-size:13px}
 button,select,input{font-family:inherit;font-size:14px}
 button{cursor:pointer;border:0;border-radius:8px;padding:8px 14px;background:var(--accent);color:#fff;font-weight:600}
+a.lbtn{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 14px;background:#fff;color:var(--ink);text-decoration:none;font-size:14px}
 button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:500}
 button.ghost:hover{border-color:#b9c2cd}
 select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
@@ -99,12 +100,27 @@ footer{margin-top:6px;font-size:12px}
 .mchart .bv{font-size:11.5px;fill:#3d434a;font-weight:600}.mchart .bv.sel{fill:#191919;font-weight:800}.mchart .axs{font-weight:700;fill:#191919}
 .mtbl{margin-top:10px;font-size:12.5px}.mtbl td,.mtbl th{padding:5px 8px}.mtbl td:first-child{color:var(--ink2)}.mtbl .selc{background:#eaf2fd;font-weight:700}
 .sheet .mcard{border:1px solid var(--line);margin:4px 0 14px}
+.vtabs{display:inline-flex;gap:4px;background:#e9edf2;border-radius:12px;padding:4px;margin-bottom:12px}
+.vtab{background:transparent;color:var(--ink2);font-weight:600;padding:8px 16px;border-radius:9px}
+.vtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+input[type=date]{padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px}
+.warnbox{background:#fff4d6;border:1px solid #f2c94c;color:#7a5200;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px}
+.dcats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.dcat{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:12px 14px;color:var(--ink);text-decoration:none}
+.dcat:hover{box-shadow:0 2px 10px rgba(20,60,120,.08)}
+.dn2{width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.dt{font-size:13px;color:var(--ink2);line-height:1.3}.dv{font-size:26px;font-weight:800}.dv span{font-size:13px;font-weight:500;color:var(--ink2)}
+.cbadge{display:inline-flex;width:24px;height:24px;border-radius:50%;color:#fff;font-size:13px;align-items:center;justify-content:center;margin-right:8px;vertical-align:2px}
+.tbl em{font-style:normal;font-size:11px;border-radius:5px;padding:1px 5px}
+.backlog{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}.backlog summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}.backlog summary b{color:var(--warn)}
+.okSum{cursor:pointer;font-size:14.5px}
 @media (max-width:1000px){.kpis{grid-template-columns:repeat(4,1fr)}.factories{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tops{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:560px){.cal-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.factories,.tops{grid-template-columns:1fr}.top h1{font-size:19px}.bar-row{grid-template-columns:110px 1fr 54px}}
+@media (max-width:560px){.dcats{grid-template-columns:repeat(2,minmax(0,1fr))}.cal-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.factories,.tops{grid-template-columns:1fr}.top h1{font-size:19px}.bar-row{grid-template-columns:110px 1fr 54px}}
 @media print{body{background:#fff}.no-print,#drawer,.tip{display:none!important}#app{padding:0;max-width:none}.card,.kpi,.fcard{break-inside:avoid;box-shadow:none}.kpis{grid-template-columns:repeat(7,1fr)}}
 </style></head>
 <body><div id="app"></div>
 <script>
+
 // ===== OT/ขาดลามาสาย engine — logic copied from the department calendar pages =====
 const ENGINE = (() => {
   const TIMESHEET_FROM = '2026-09';
@@ -281,6 +297,8 @@ const ENGINE = (() => {
 // D: { holidays, startDates, hrAtt, depts:[{prefix,label,group,rows,history,monthlyLeave,roster}] }
 // พนักงานที่ได้รับยกเว้นการสแกนนิ้ว: นับเป็นพนักงานทุกเดือน ไม่นับขาดงานจากการไม่สแกน แต่ยังนับลา/ขาดจากหมายเหตุ
 const SCAN_EXEMPT = { '450822': 'SALE & MARKETTING' };
+// ไม่นับในรายงานเลย (ทุกเดือน)
+const REPORT_EXCLUDE = ['450233']; // จรัส เนาวโคอักษร (INJECTION)
 function buildAll(D, fromPrefix) {
   const rosterHire = {};
   D.depts.forEach(d => (d.roster || []).forEach(r => { if (r && r.empId && r.hireDate) rosterHire[String(r.empId).trim()] = r.hireDate; }));
@@ -315,6 +333,7 @@ function buildAll(D, fromPrefix) {
       ml.forEach(r => { if (r.month === label) ids.add(String(r.empId).trim()); });
       const importedIds = new Set(ml.filter(r => r.month === label).map(r => String(r.empId).trim()));
       ids.forEach(id => {
+        if (REPORT_EXCLUDE.includes(id)) return;
         // คนที่อยู่ในรายชื่อแผนกอื่น ไม่นับในแผนกนี้
         if (!rosterIds.has(id) && rosterOf[id] && !rosterOf[id].has(d.label)) return;
         // ตัดคนลาออก: ตั้งแต่เดือนที่มีข้อมูลสแกน ต้องมีสแกน/การลาในเดือนนั้น หรือมีสรุปที่นำเข้า
@@ -344,6 +363,8 @@ function buildAll(D, fromPrefix) {
 }
 
 // ===== Executive dashboard UI =====
+// MODE: 'exec' = หน้าผู้บริหาร, 'daily' = หน้ารายงานคำขอโอทีประจำวัน (อยู่ในหน้า Admin)
+const MODE = (typeof PAGE_MODE !== 'undefined') ? PAGE_MODE : 'exec';
 const DB = 'https://poomjai-ot-default-rtdb.asia-southeast1.firebasedatabase.app';
 // รหัสเข้าสู่ระบบ: PJ2569 = ผู้บริหาร เห็นทุกแผนก / รหัสแผนก = เห็นเฉพาะแผนกของตน
 // แก้รหัสหรือเพิ่มได้ที่นี่ (1 รหัสใส่ได้หลายแผนก)
@@ -383,6 +404,7 @@ const mShort = (p) => { const [y, m] = p.split('-').map(Number); return `${TMS[m
 const daysTxt = (d, h) => { let s = `${fmt(d)} วัน`; if (h > 0) s += ` (+${fmt(h)} ชม.)`; return s; };
 
 const S = { data: null, month: '', group: 'ALL', deptOpen: '', sortKey: 'ot', loading: false, scope: null };
+if (MODE === 'daily') { Object.keys(ACCESS).forEach(k => delete ACCESS[k]); ACCESS['092525'] = null; ACCESS['PJ2569'] = null; }
 const findCode = (v) => Object.keys(ACCESS).find(k => k.toUpperCase() === String(v || '').trim().toUpperCase());
 
 // ---------- login ----------
@@ -390,15 +412,15 @@ function showLogin() {
   $('#app').innerHTML = `
   <div class="login"><div class="login-card">
     <div class="logo">Poomjai Group</div>
-    <h1>รายงานสรุปสำหรับผู้บริหาร</h1>
-    <p class="muted">OT และ ขาด–ลา–มาสาย รายเดือน แยกโรงงาน / แผนก</p>
+    <h1>${MODE === 'daily' ? 'Admin · รายงานคำขอโอทีประจำวัน' : 'รายงานสรุปสำหรับผู้บริหาร'}</h1>
+    <p class="muted">${MODE === 'daily' ? 'ทำโอทีไม่ขอ · ไม่อนุมัติ · อนุมัติแต่ไม่ทำ · หัวหน้าไม่ตอบ' : 'OT และ ขาด–ลา–มาสาย รายเดือน แยกโรงงาน / แผนก'}</p>
     <input id="pw" type="password" placeholder="รหัสเข้าสู่ระบบ" autocomplete="current-password">
     <button id="go">เข้าสู่ระบบ</button>
     <div id="err" class="err"></div>
   </div></div>`;
   const go = () => {
     const code = findCode($('#pw').value);
-    if (code) { S.scope = ACCESS[code]; S.group = 'ALL'; S.dept = ''; try { sessionStorage.setItem('execOK', code); } catch (e) {} start(); }
+    if (code) { S.scope = ACCESS[code]; S.group = 'ALL'; S.dept = ''; try { sessionStorage.setItem(MODE + 'OK', code); } catch (e) {} start(); }
     else $('#err').textContent = 'รหัสไม่ถูกต้อง';
   };
   $('#go').onclick = go; $('#pw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -411,8 +433,8 @@ const get = (k) => fetch(`${DB}/${encodeURIComponent(k)}.json`).then(r => { if (
 async function loadData() {
   const [holidays, startDates, hrAtt] = await Promise.all([get('companyHolidays'), get('employeeStartDates'), get('hrAttendanceRecords')]);
   const depts = await Promise.all(DEPTS.map(async ([p, l, g]) => {
-    const [rows, history, ml, roster] = await Promise.all([get(p + '_rows'), get(p + '_history'), get(p + '_monthlyLeave'), get(p + '_roster')]);
-    return { prefix: p, label: l, group: g, rows: arr(rows), history: history ? Object.keys(history).map(k => history[k]) : [], monthlyLeave: arr(ml), roster: arr(roster) };
+    const [rows, history, ml, roster, reqs] = await Promise.all([get(p + '_rows'), get(p + '_history'), get(p + '_monthlyLeave'), get(p + '_roster'), get(p + '_otRequests')]);
+    return { prefix: p, label: l, group: g, rows: arr(rows), history: history ? Object.keys(history).map(k => history[k]) : [], monthlyLeave: arr(ml), roster: arr(roster), requests: arr(reqs) };
   }));
   return { holidays: holidays || [], startDates: startDates || {}, hrAtt: hrAtt || {}, depts };
 }
@@ -423,6 +445,10 @@ async function start() {
     const D = await loadData();
     await new Promise(r => setTimeout(r, 30));
     S.data = buildAll(D, '2025-12');
+    // คำขอโอทีทุกแผนก + วันล่าสุดที่มีข้อมูลสแกน
+    S.requests = []; D.depts.forEach(d => (d.requests || []).forEach(q => { if (q && q.empId && q.date) S.requests.push({ ...q, empId: String(q.empId).trim(), reqDept: d.label }); }));
+    let last = ''; Object.values(S.data.mergedBy).forEach(mg => mg.forEach(bd => bd.forEach((v, k) => { if ((v.timeIn || v.timeOut) && k > last && k < S.data.todayIso) last = k; })));
+    S.lastScan = last || S.data.todayIso; if (!S.day) S.day = S.lastScan;
     S.loadedAt = new Date();
     const withData = S.data.months.filter(m => S.data.recs.some(r => r.month === m && (r.ot > 0 || r.late > 0 || r.absentDays > 0 || r.personal > 0 || r.sick > 0)));
     S.monthsAvail = withData.length ? withData : S.data.months;
@@ -455,6 +481,7 @@ function byDept(recs) { const m = {}; recs.forEach(r => add(m[r.dept] || (m[r.de
 
 // ---------- render ----------
 function render() {
+  if (MODE === 'daily') return renderDay();
   if (!S.from || S.from > S.month) S.from = S.month;
   const month = S.month, from = S.from, single = from === month;
   const span = rangeOf(from, month), recs = aggRange(from, month, inGroup(S.group)), T = total(recs);
@@ -535,7 +562,7 @@ function render() {
   $('#from').onchange = (e) => { S.from = e.target.value; if (S.from > S.month) S.month = S.from; render(); };
   $('#refresh').onclick = () => start();
   $('#print').onclick = () => window.print();
-  $('#logout').onclick = () => { try { sessionStorage.removeItem('execOK'); } catch (e) {} showLogin(); };
+  $('#logout').onclick = () => { try { sessionStorage.removeItem(MODE + 'OK'); } catch (e) {} showLogin(); };
   document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.group = b.dataset.g; render(); });
   document.querySelectorAll('.chip[data-d]').forEach(b => b.onclick = () => { S.dept = b.dataset.d; render(); });
   document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => openDept(el.dataset.dept));
@@ -543,6 +570,126 @@ function render() {
   document.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { S.sortKey = el.dataset.sort; render(); });
   bindMonthCard('main', (m) => { S.month = m; S.from = m; render(); window.scrollTo(0, 0); });
   bindTips(); bindEmp();
+}
+
+// ---------- รายงานประจำวัน ----------
+function navChips() {
+  return S.scope ? (S.scope.length > 1 ? `<nav class="chips dchips no-print">${[{ k: '', l: `ภาพรวม (${S.scope.length} แผนก)` }, ...S.scope.map(d => ({ k: d, l: d }))].map(c => `<button class="chip ${S.dept === c.k ? 'on' : ''}" data-d="${esc(c.k)}">${esc(c.l)}</button>`).join('')}</nav>` : '')
+    : `<nav class="chips no-print">${[{ key: 'ALL', label: 'ทั้งบริษัท' }, ...GROUPS].map(g => `<button class="chip ${S.group === g.key ? 'on' : ''}" data-g="${g.key}">${g.color ? `<i style="background:${g.color}"></i>` : ''}${g.label}</button>`).join('')}</nav>`;
+}
+const dayCache = new Map();
+function dayInfo(dept, id, iso) {
+  const key = dept + '|' + id + '|' + iso.slice(0, 7);
+  let list = dayCache.get(key);
+  if (!list) { const mg = (S.data.mergedBy[dept] || new Map()).get(id) || new Map(); list = S.data.E.dayList(id, mg, iso.slice(0, 7)); dayCache.set(key, list); }
+  return list[+iso.slice(8) - 1] || {};
+}
+const thDate = (iso) => { const d = new Date(iso + 'T00:00:00'); return `${WD[d.getDay()]} ${d.getDate()} ${TMS[d.getMonth()]} ${d.getFullYear() + 543}`; };
+const decided = (q) => { if (!q.decidedBy && !q.decidedAt) return '–'; const hrs = q.decidedAt && q.requestedAt ? (new Date(q.decidedAt) - new Date(q.requestedAt)) / 3600000 : null;
+  return `<b>${esc(q.decidedBy || '–')}</b><br><small class="muted">${tStamp(q.decidedAt)}${hrs != null && hrs >= 0 ? ` · หลังขอ ${hrs < 1 ? Math.round(hrs * 60) + ' นาที' : hrs < 48 ? fmt(hrs) + ' ชม.' : Math.floor(hrs / 24) + ' วัน'}` : ''}</small>`; };
+const tStamp = (s) => { if (!s) return '–'; const d = new Date(s); return `${d.getDate()} ${TMS[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+// แผนกที่ไม่ต้องขออนุมัติโอที — ไม่แสดงในรายงานประจำวัน
+const NO_APPROVAL_DEPTS = ['PERSONAL'];
+function dailyReport(iso) {
+  const month = iso.slice(0, 7), inV0 = inGroup(S.group), inV = (r) => !NO_APPROVAL_DEPTS.includes(r.dept) && inV0(r);
+  const people = S.data.recs.filter(r => r.month === month && inV(r));
+  const deptOf = {}; people.forEach(r => { deptOf[r.empId] = r.dept; });
+  // คำขอของวันนั้น (ล่าสุดต่อคน ไม่นับที่ยกเลิก)
+  const req = {};
+  S.requests.filter(q => q.date === iso && q.status !== 'cancelled').forEach(q => {
+    const p = req[q.empId]; if (!p || String(q.requestedAt || '') > String(p.requestedAt || '')) req[q.empId] = q; });
+  const out = { noReq: [], rejected: [], noShow: [], pending: [], okDone: [] };
+  people.forEach(r => {
+    const d = dayInfo(r.dept, r.empId, iso); const q = req[r.empId];
+    const base = { dept: r.dept, empId: r.empId, name: r.name, tin: d.tin || '', tout: d.tout || '', ot: d.ot || 0, shift: d.shift, note: d.note || '', lt: d.lt, q };
+    if (!q) { if (d.ot > 0) out.noReq.push(base); return; }
+    if (q.status === 'rejected') out.rejected.push(base);
+    else if (q.status === 'pending') out.pending.push(base);
+    else if (q.status === 'approved' && !(d.ot > 0)) out.noShow.push(base);
+    else if (q.status === 'approved') out.okDone.push(base);
+  });
+  // คำขอของคนที่ไม่อยู่ในรายชื่อเดือนนั้น (กันตกหล่น)
+  Object.values(req).forEach(q => { if (deptOf[q.empId]) return; if (!inV({ dept: q.reqDept })) return;
+    const base = { dept: q.reqDept, empId: q.empId, name: q.name || q.empId, tin: '', tout: '', ot: 0, note: '', q };
+    if (q.status === 'rejected') out.rejected.push(base); else if (q.status === 'pending') out.pending.push(base); else if (q.status === 'approved') out.noShow.push(base); });
+  Object.values(out).forEach(l => l.sort((a, b) => a.dept.localeCompare(b.dept) || b.ot - a.ot));
+  return out;
+}
+// คำขอที่ค้าง "รออนุมัติ" สะสมทุกวัน (ภายในขอบเขตที่ดูได้)
+function backlog() {
+  const inV0 = inGroup(S.group), inV = (r) => !NO_APPROVAL_DEPTS.includes(r.dept) && inV0(r); const seen = new Set();
+  const L = S.requests.filter(q => q.status === 'pending' && q.date <= S.data.todayIso && inV({ dept: q.reqDept }))
+    .filter(q => { const k = q.reqDept + q.empId + q.date; if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((x, y) => x.date.localeCompare(y.date));
+  if (!L.length) return '';
+  const byDept = {}; L.forEach(q => byDept[q.reqDept] = (byDept[q.reqDept] || 0) + 1);
+  return `<details class="backlog"><summary>คำขอที่ค้าง "รออนุมัติ" สะสมทุกวัน: <b>${L.length} รายการ</b> — ${Object.entries(byDept).sort((a, b) => b[1] - a[1]).map(([d, n]) => `${esc(d)} ${n}`).join(' · ')}</summary>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>ชื่อ</th><th>วันที่ขอโอที</th><th>ขอเมื่อ</th><th>ค้างมาแล้ว</th><th>งาน</th></tr></thead><tbody>
+    ${L.map(q => `<tr><td>${esc(q.reqDept)}</td><td>${esc(q.name || q.empId)}</td><td>${thDate(q.date)}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 86400000) + ' วัน' : '–'}</td><td class="note-c">${esc(q.note || '')}</td></tr>`).join('')}
+    </tbody></table></div></details>`;
+}
+
+function renderDay() {
+  const iso = S.day; const R = dailyReport(iso);
+  const gLabel = S.dept ? S.dept : S.scope ? (S.scope.length > 1 ? 'ภาพรวม ' + S.scope.length + ' แผนก' : S.scope[0]) : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
+  const noData = iso > S.lastScan;
+  const shiftDay = (n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const CATS = [
+    { k: 'noReq', t: 'ทำโอที แต่ไม่ได้ขอโอที', c: '#c62828', d: 'มีเวลาสแกนที่ได้ OT แต่ไม่มีคำขอโอทีของวันนี้ในระบบ' },
+    { k: 'rejected', t: 'ขอโอทีแล้ว หัวหน้าไม่อนุมัติ', c: '#7b61c9', d: 'คำขอถูกหัวหน้างานปฏิเสธ' },
+    { k: 'noShow', t: 'ขอโอทีแล้ว (อนุมัติ) แต่ไม่ได้ทำ', c: '#e07b00', d: 'อนุมัติแล้ว แต่เวลาสแกนไม่ได้ OT' },
+    { k: 'pending', t: 'ขอโอทีแล้ว หัวหน้ายังไม่ตอบกลับ', c: '#1b64be', d: 'คำขอยังค้างสถานะ "รออนุมัติ" — หัวหน้างานยังไม่ได้ดำเนินการ' }
+  ];
+  const time = (r) => (r.tin || r.tout) ? `${esc(r.tin || '–')} – ${esc(r.tout || '–')}` : '<span class="muted">ไม่มีเวลาสแกน</span>';
+  const LTX = { sick: 'ลาป่วย', sick_cert: 'ลาป่วย(ใบแพทย์)', personal: 'ลากิจ', vacation: 'พักร้อน' };
+  const table = (c) => { const L = R[c.k]; if (!L.length) return '<div class="empty">✓ ไม่มีรายการ</div>';
+    const head = { noReq: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>หมายเหตุ</th>',
+      rejected: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ผู้ไม่อนุมัติ / เวลา</th><th>งาน/เหตุผล</th>',
+      noShow: '<th>เวลาเข้า–ออก</th><th>ขอเมื่อ</th><th>ผู้อนุมัติ / เวลา</th><th>งาน</th><th>หมายเหตุวันนั้น</th>',
+      pending: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>รอมาแล้ว</th><th>งาน</th>' }[c.k];
+    const row = (r) => { const q = r.q || {}; const wait = q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 3600000) : 0;
+      const cells = { noReq: `<td>${time(r)}</td><td class="num strong">${fmt(r.ot)}</td><td class="note-c">${esc(r.note)}</td>`,
+        rejected: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td>`,
+        noShow: `<td>${time(r)}${r.lt ? ` <em class="t-l">${LTX[r.lt] || r.lt}</em>` : ''}</td><td>${tStamp(q.requestedAt)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td><td class="note-c">${esc(r.note)}${q.noShowAck ? ' <em class="t-h">หัวหน้ารับทราบแล้ว</em>' : ''}</td>`,
+        pending: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${wait >= 48 ? Math.floor(wait / 24) + ' วัน' : wait + ' ชม.'}</td><td class="note-c">${esc(q.note || '')}</td>` }[c.k];
+      return `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td>${cells}</tr>`; };
+    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th>${head}</tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>`; };
+  // สรุปรายแผนก
+  const depts = [...new Set(CATS.flatMap(c => R[c.k].map(r => r.dept)))].sort();
+  $('#app').innerHTML = `
+  <header class="top"><div>
+      <div class="eyebrow">Poomjai Group · Admin (ฝ่ายบุคคล)</div>
+      <h1>รายงานคำขอโอทีประจำวัน · ${thDate(iso)}</h1>
+      <div class="muted">${gLabel} · เทียบคำขอโอทีในระบบกับเวลาสแกนจริง · ข้อมูลสแกนล่าสุดถึง ${thDate(S.lastScan)}</div></div>
+    <div class="actions no-print">
+      <a class="ghost lbtn" href="./">← หน้า Admin</a>
+      <button class="ghost" id="dPrev">‹ วันก่อน</button><input type="date" id="dPick" value="${iso}" max="${S.data.todayIso}"><button class="ghost" id="dNext">วันถัดไป ›</button>
+      <button class="ghost" id="dLast">ล่าสุด</button>
+      <button id="refresh" class="ghost">↻ อัปเดต</button><button id="print" class="ghost">🖨 พิมพ์ / PDF</button><button id="logout" class="ghost">ออก</button></div>
+  </header>
+  ${navChips()}
+  ${noData ? `<div class="warnbox">ยังไม่มีข้อมูลเวลาสแกนของวันนี้ (นำเข้าใบลงเวลาล่าสุดถึง ${thDate(S.lastScan)}) — หมวด "ทำโอทีแต่ไม่ได้ขอ" และ "อนุมัติแต่ไม่ได้ทำ" จะยังไม่ถูกต้อง</div>` : ''}
+  <section class="dcats">${CATS.map((c, i) => `<a class="dcat" href="#cat-${c.k}" style="--c:${c.c}"><div class="dn2">${i + 1}</div><div><div class="dt">${c.t}</div><div class="dv">${R[c.k].length} <span>คน</span></div></div></a>`).join('')}</section>
+  ${depts.length > 1 ? `<section class="card"><div class="card-h"><h2>สรุปแยกแผนก</h2></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th>${CATS.map((c, i) => `<th class="num">${i + 1}. ${c.t}</th>`).join('')}</tr></thead><tbody>
+    ${depts.map(d => `<tr><td><b>${esc(d)}</b></td>${CATS.map(c => { const n = R[c.k].filter(r => r.dept === d).length; return `<td class="num ${n ? 'warn strong' : ''}">${n || '–'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div></section>` : ''}
+  ${CATS.map((c, i) => `<section class="card" id="cat-${c.k}"><div class="card-h"><div><h2><span class="cbadge" style="background:${c.c}">${i + 1}</span>${c.t} <span class="muted">(${R[c.k].length} คน)</span></h2><div class="muted">${c.d}</div></div></div>${table(c)}${c.k === 'pending' ? backlog() : ''}</section>`).join('')}
+  ${R.okDone.length ? `<section class="card"><details><summary class="okSum"><b>คำขอที่อนุมัติแล้ว และทำ OT ตามที่ขอ</b> <span class="muted">(${R.okDone.length} คน) — ดูชื่อผู้อนุมัติและเวลาอนุมัติ</span></summary>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ผู้อนุมัติ / เวลา</th><th>งาน</th></tr></thead><tbody>
+    ${R.okDone.map(r => `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td>${esc(r.tin || '–')} – ${esc(r.tout || '–')}</td><td class="num strong">${fmt(r.ot)}</td><td>${tStamp(r.q.requestedAt)}</td><td>${decided(r.q)}</td><td class="note-c">${esc(r.q.note || '')}</td></tr>`).join('')}
+    </tbody></table></div></details></section>` : ''}
+  <footer class="muted">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวันของคนนั้น · ดึงข้อมูลเมื่อ ${S.loadedAt.toLocaleString('th-TH')}</footer>
+  <div id="tip" class="tip"></div><div id="drawer"></div>`;
+  $('#dPick').onchange = (e) => { if (e.target.value) { S.day = e.target.value; render(); } };
+  $('#dPrev').onclick = () => { S.day = shiftDay(-1); render(); };
+  $('#dNext').onclick = () => { S.day = shiftDay(1); render(); };
+  $('#dLast').onclick = () => { S.day = S.lastScan; render(); };
+  $('#refresh').onclick = () => { dayCache.clear(); start(); };
+  $('#print').onclick = () => window.print();
+  $('#logout').onclick = () => { try { sessionStorage.removeItem(MODE + 'OK'); } catch (e) {} showLogin(); };
+  document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.group = b.dataset.g; render(); });
+  document.querySelectorAll('.chip[data-d]').forEach(b => b.onclick = () => { S.dept = b.dataset.d; render(); });
+  bindEmp();
+  document.querySelectorAll('[data-emp]').forEach(el => el.onclick = (e) => { e.stopPropagation(); openEmp(el.dataset.edept, el.dataset.emp, iso.slice(0, 7)); });
 }
 
 function kpi(label, value, unit, foot, hero) {
@@ -757,6 +904,6 @@ function bindTips() {
 }
 
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#drawer')) $('#drawer').innerHTML = ''; });
-(function boot() { let code = ''; try { code = findCode(sessionStorage.getItem('execOK')); } catch (e) {} if (code) { S.scope = ACCESS[code]; start(); } else showLogin(); })();
+(function boot() { let code = ''; try { code = findCode(sessionStorage.getItem(MODE + 'OK')); } catch (e) {} if (code) { S.scope = ACCESS[code]; start(); } else showLogin(); })();
 
 </script></body></html>
