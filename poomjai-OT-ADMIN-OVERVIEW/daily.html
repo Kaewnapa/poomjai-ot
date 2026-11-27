@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin · รายงานคำขอโอทีประจำวัน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f4f6f9;--card:#fff;--ink:#191919;--ink2:#5f6670;--line:#e3e7ec;--accent:#1b64be;--warn:#c62828}
+body{background:var(--bg);color:var(--ink);font-family:'Sarabun','Noto Sans Thai','Segoe UI',Tahoma,sans-serif;font-size:14px;line-height:1.45}
+#app{max-width:1240px;margin:0 auto;padding:22px 20px 40px}
+.muted{color:var(--ink2);font-size:13px}
+button,select,input{font-family:inherit;font-size:14px}
+button{cursor:pointer;border:0;border-radius:8px;padding:8px 14px;background:var(--accent);color:#fff;font-weight:600}
+a.lbtn{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 14px;background:#fff;color:var(--ink);text-decoration:none;font-size:14px}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:500}
+button.ghost:hover{border-color:#b9c2cd}
+select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.login{min-height:80vh;display:flex;align-items:center;justify-content:center}
+.login-card{background:#fff;padding:36px 34px;border-radius:16px;box-shadow:0 8px 30px rgba(20,40,80,.08);width:360px;text-align:center;display:flex;flex-direction:column;gap:12px}
+.login-card h1{font-size:20px}.logo{height:48px;padding:0 22px;border-radius:14px;background:var(--accent);color:#fff;font-weight:800;font-size:20px;letter-spacing:.3px;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 4px;align-self:center;white-space:nowrap}
+.login-card input{padding:11px 12px;border:1px solid var(--line);border-radius:10px;text-align:center;letter-spacing:2px}
+.err{color:var(--warn);min-height:18px;font-size:13px}
+.loading{min-height:60vh;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;color:var(--ink2)}
+.spin{width:34px;height:34px;border:3px solid #d6e2f1;border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.top h1{font-size:24px;margin:2px 0}.eyebrow{font-size:12px;color:var(--accent);font-weight:700;letter-spacing:.3px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rng{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500;display:inline-flex;align-items:center;gap:7px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+i{display:inline-block;width:10px;height:10px;border-radius:3px;flex:none}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi.hero{background:#eaf2fd;border-color:#b6d5f8}
+.kpi-l{font-size:13px;color:var(--ink2)}.kpi-v{font-size:26px;font-weight:700;margin-top:2px;white-space:nowrap}.kpi-v span{font-size:13px;font-weight:500;color:var(--ink2);margin-left:5px}
+.kpi-f{font-size:12px;color:var(--ink2);margin-top:2px;min-height:17px}
+.delta.up{color:#1b64be}.delta.down{color:#5f6670}
+.factories{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.fcard{background:#fff;color:var(--ink);border:1px solid var(--line);text-align:left;padding:14px;border-radius:12px;font-weight:400}
+.fcard:hover{border-color:#9dc8f7;box-shadow:0 2px 10px rgba(20,60,120,.07)}
+.fh{font-weight:700;display:flex;align-items:center;gap:8px;font-size:15px}.fsub{font-size:12px;color:var(--ink2);margin:2px 0 6px}
+.fot{font-size:22px;font-weight:700}.fot span{font-size:12px;font-weight:500;color:var(--ink2)}
+.fstats{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:6px}.fstats b{color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.grid2 .card{margin-bottom:0}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}.card-h h2{font-size:16px}
+.bars{display:flex;flex-direction:column;gap:5px}
+.bar-row{display:grid;grid-template-columns:150px 1fr 64px;align-items:center;gap:8px;cursor:pointer;padding:2px 0;border-radius:6px}
+.bar-row:hover{background:#f5f8fc}
+.bar-l{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-t{height:14px;background:transparent}.bar-f{height:100%;border-radius:0 4px 4px 0}
+.bar-v{font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--ink2)}.legend span{display:inline-flex;align-items:center;gap:6px}
+.trend{width:100%;height:auto;display:block}.trend .gl{stroke:#eceff3;stroke-width:1}.trend .ax{font-size:11px;fill:#6b7280}.trend .vl{font-size:12px;font-weight:700;fill:#191919}
+.tbl-wrap{overflow:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;font-weight:600;color:var(--ink2);font-size:12.5px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid #f0f2f5;white-space:nowrap}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums}.tbl .strong{font-weight:700}.tbl .warn{color:var(--warn)}
+.tbl small{color:var(--ink2);font-size:11px}
+.tbl tr.click{cursor:pointer}.tbl tr.click:hover td{background:#f5f8fc}
+.tbl tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:0}
+.sortable{cursor:pointer}.sorted{color:var(--ink)!important}
+.gtag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
+.tops{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+.top h3{font-size:14px;margin-bottom:8px}
+.top ol{list-style:none;counter-reset:t;display:flex;flex-direction:column;gap:6px}
+.top li{counter-increment:t;display:flex;justify-content:space-between;gap:8px;align-items:center;background:#f7f9fb;border-radius:8px;padding:7px 10px}
+.top li::before{content:counter(t);font-weight:700;color:var(--accent);width:16px;flex:none}
+.top li div{flex:1;min-width:0}.top li b{display:block;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.top li small{color:var(--ink2);font-size:11.5px}
+.top li span{font-weight:700;font-size:13px;white-space:nowrap}
+.empty{color:var(--ink2);padding:14px 0;text-align:center;font-size:13px}
+footer{margin-top:6px;font-size:12px}
+.tip{position:fixed;display:none;background:#191919;color:#fff;padding:7px 10px;border-radius:8px;font-size:12.5px;pointer-events:none;z-index:50;max-width:250px}
+.ov{position:fixed;inset:0;background:rgba(15,25,40,.35);display:flex;justify-content:center;align-items:flex-start;padding:40px 16px;z-index:40;overflow:auto}
+.sheet{background:#fff;border-radius:14px;padding:18px 20px;width:min(980px,100%)}
+.link{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.top li.click{cursor:pointer}.top li.click:hover{background:#eaf2fd}
+.cal-sheet{width:min(1100px,100%)}
+.cal-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 12px}.cal-nav button:disabled{opacity:.35;cursor:default}
+.cal-sum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.cal-sum div{background:#f7f9fb;border-radius:10px;padding:8px 12px}.cal-sum span{display:block;font-size:12px;color:var(--ink2)}.cal-sum b{font-size:16px}
+.cal-wrap{overflow-x:auto}.cal{display:grid;grid-template-columns:repeat(7,minmax(118px,1fr));gap:4px;min-width:840px}
+.wh{text-align:center;font-weight:600;font-size:12.5px;color:var(--ink2);padding:4px 0}.wh.we{color:#c62828}
+.cd{min-height:96px;border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fff;display:flex;flex-direction:column;gap:3px;font-size:12px}
+.cd.empty-c{border:0;background:transparent}
+.cd.wk{background:#f1f3f6}.cd.hol{background:#fff4d6}.cd.lv{background:#e3f0fb;border-color:#90c2ea}.cd.ab{background:#fdecea;border-color:#e57373}
+.cd.has-ot{background:#dcf2d9;border-color:#7cc474}.cd.fut{opacity:.45}
+.dn{font-weight:700;font-size:13px}.tm{color:var(--ink);font-variant-numeric:tabular-nums}
+.otb{background:#1b7a2b;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700;align-self:flex-start}
+.cd em{font-style:normal;font-size:11px;border-radius:5px;padding:1px 5px;align-self:flex-start}
+.t-l{background:#cfe4f7;color:#0f4a96}.t-a{background:#f9d2d2;color:#b71c1c}.t-h{background:#ffe7a6;color:#7a5200}.t-n{background:#e4e0f7;color:#4a3aa8}
+.nt{font-size:10.5px;color:var(--ink2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:10px 0 4px}.cal-legend span{display:inline-flex;align-items:center;gap:6px}.cal-legend i{border:1px solid #d5dae0}
+.ot-h{font-size:14px;margin:14px 0 6px}.note-c{white-space:normal!important;max-width:320px;color:var(--ink2)}
+.mtabs{display:flex;gap:4px;background:#f1f3f6;border-radius:10px;padding:3px}
+.mtab{background:transparent;color:var(--ink2);font-weight:500;padding:6px 12px;border-radius:8px}
+.mtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.mchart{margin-top:4px}.mchart .mb{cursor:pointer}.mchart .mb:hover path{opacity:1}
+.mchart .bv{font-size:11.5px;fill:#3d434a;font-weight:600}.mchart .bv.sel{fill:#191919;font-weight:800}.mchart .axs{font-weight:700;fill:#191919}
+.mtbl{margin-top:10px;font-size:12.5px}.mtbl td,.mtbl th{padding:5px 8px}.mtbl td:first-child{color:var(--ink2)}.mtbl .selc{background:#eaf2fd;font-weight:700}
+.sheet .mcard{border:1px solid var(--line);margin:4px 0 14px}
+.vtabs{display:inline-flex;gap:4px;background:#e9edf2;border-radius:12px;padding:4px;margin-bottom:12px}
+.vtab{background:transparent;color:var(--ink2);font-weight:600;padding:8px 16px;border-radius:9px}
+.vtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+input[type=date]{padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px}
+.warnbox{background:#fff4d6;border:1px solid #f2c94c;color:#7a5200;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px}
+.dcats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.dcat{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:12px 14px;color:var(--ink);text-decoration:none}
+.dcat:hover{box-shadow:0 2px 10px rgba(20,60,120,.08)}
+.dn2{width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.dt{font-size:13px;color:var(--ink2);line-height:1.3}.dv{font-size:26px;font-weight:800}.dv span{font-size:13px;font-weight:500;color:var(--ink2)}
+.cbadge{display:inline-flex;width:24px;height:24px;border-radius:50%;color:#fff;font-size:13px;align-items:center;justify-content:center;margin-right:8px;vertical-align:2px}
+.tbl em{font-style:normal;font-size:11px;border-radius:5px;padding:1px 5px}
+.backlog{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}.backlog summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}.backlog summary b{color:var(--warn)}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(4,1fr)}.factories{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tops{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.dcats{grid-template-columns:repeat(2,minmax(0,1fr))}.cal-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.factories,.tops{grid-template-columns:1fr}.top h1{font-size:19px}.bar-row{grid-template-columns:110px 1fr 54px}}
+@media print{body{background:#fff}.no-print,#drawer,.tip{display:none!important}#app{padding:0;max-width:none}.card,.kpi,.fcard{break-inside:avoid;box-shadow:none}.kpis{grid-template-columns:repeat(7,1fr)}}
+</style></head>
+<body><div id="app"></div>
+<script>
+const PAGE_MODE = 'daily';
+// ===== OT/ขาดลามาสาย engine — logic copied from the department calendar pages =====
+const ENGINE = (() => {
+  const TIMESHEET_FROM = '2026-09';
+  const NIGHT_PERMANENT = ['450678','450573','450846','450925','450958','450965','450966','450512'];
+  const TMS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const pad = (n) => String(n).padStart(2, '0');
+  const pT = (t) => { if (!t) return null; const m = String(t).trim().match(/^(\d{1,2})[:.](\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+  const labelOf = (prefix) => { const [y, m] = prefix.split('-').map(Number); return `${TMS[m - 1]}${String(y + 543).slice(-2)}`; };
+  const prefixOf = (label) => { const mt = String(label || '').match(/^(.+?)(\d+)$/); if (!mt) return ''; const mi = TMS.indexOf(mt[1]); if (mi < 0) return ''; return `${2500 + (+mt[2]) - 543}-${pad(mi + 1)}`; };
+
+  function make(G) { // G: {holidays:[], startDates:{}, hrAtt:{}, rosterHire:{}}
+    const hol = new Set(G.holidays || []);
+    const isWeekend = (iso) => { if (hol.has(iso)) return true; const wd = new Date(iso + 'T00:00:00').getDay(); return wd === 0 || wd === 6; };
+    const deriveShift = (tin, tout, empId) => {
+      const i = pT(tin), o = pT(tout);
+      if (i !== null) { if (i >= 1020) return 'night'; if (i < 420 && o !== null && o <= 660 && o > i) return 'night'; return 'day'; }
+      if (o !== null && o <= 660) return 'night';
+      return NIGHT_PERMANENT.includes(String(empId)) ? 'night' : 'day';
+    };
+    const inferLeave = (note) => {
+      const t = String(note || ''); if (!t.trim()) return null; let lt = '';
+      if (/ลาป่วย|ป่วย/.test(t)) lt = /ใบรับรอง|ใบแพทย์|มีใบ/.test(t) ? 'sick_cert' : 'sick';
+      else if (/ลากิจ/.test(t)) lt = 'personal'; else if (/พักร้อน/.test(t)) lt = 'vacation';
+      if (!lt) return null;
+      return { leaveType: lt, leaveDuration: /ครึ่ง|0\.5\s*วัน/.test(t) ? 'half' : (/ชม|ชั่วโมง/.test(t) ? 'hour' : 'day'), reason: t };
+    };
+    const leaveHours = (r) => {
+      if (!r || !r.leaveType) return 0; const dur = r.leaveDuration || 'day';
+      if (dur === 'half') return 4;
+      if (dur === 'hour') {
+        const s = pT(r.leaveStart), e = pT(r.leaveEnd);
+        if (s !== null && e !== null && e > s) return Math.round(((e - s) / 60) * 100) / 100;
+        const t = String(r.reason || '');
+        const rg = t.match(/(\d{1,2})[.:](\d{2})\s*[-–]\s*(\d{1,2})[.:](\d{2})/);
+        if (rg) { const d = (+rg[3] * 60 + +rg[4]) - (+rg[1] * 60 + +rg[2]); if (d > 0) return Math.round((d / 60) * 100) / 100; }
+        const hm = t.match(/(\d+(?:\.\d+)?)\s*(?:ชม|ชั่วโมง)/); if (hm && parseFloat(hm[1]) > 0) return parseFloat(hm[1]);
+        return 1;
+      }
+      return 8;
+    };
+    const lateRule = (tin, note) => {
+      const n = String(note || '');
+      const mh = n.match(/ขาด(?:งาน)?\s*([\d.]+)\s*(?:ชั่วโมง|ชม)/); if (mh) return { late: false, ah: parseFloat(mh[1]) || 0, ad: 0 };
+      const md = n.match(/ขาด(?:งาน)?\s*([\d.]+)\s*วัน/); if (md) return { late: false, ah: 0, ad: parseFloat(md[1]) || 0 };
+      if (/(^|[^ก-๙])(มา)?สาย/.test(n)) return { late: true, ah: 0, ad: 0 };
+      const im = pT(tin);
+      if (im === null || im <= 480) return { late: false, ah: 0, ad: 0 };
+      if (im < 540) return { late: true, ah: 0, ad: 0 };
+      if (im < 720) return { late: false, ah: Math.ceil((im - 480) / 30) * 0.5, ad: 0 };
+      return { late: false, ah: 0, ad: 0 };
+    };
+    const otHours = (timeOut, timeIn, iso, shift, skipped) => {
+      let o = pT(timeOut); if (o === null) return 0; const i = pT(timeIn);
+      if (isWeekend(iso)) {
+        if (i === null) return 0;
+        const ic = Math.ceil(Math.max(i, 480) / 30) * 30; if (o < ic) o += 1440;
+        let d = o - ic; d -= Math.max(0, Math.min(o, 780) - Math.max(ic, 720));
+        if (!skipped) d -= Math.max(0, Math.min(o, 1110) - Math.max(ic, 1080));
+        if (d <= 0) return 0; return Math.floor(d / 60) + ((d % 60) >= 30 ? 0.5 : 0);
+      }
+      if (shift === 'night') {
+        if (i === null) return 0; const nm = (m) => (m < 720 ? m + 1440 : m);
+        const inN = nm(i), cut = nm(300), outN = Math.min(nm(o), nm(480)); const st = inN <= cut ? cut : inN;
+        let d = outN - st; d -= Math.max(0, Math.min(outN, nm(330)) - Math.max(st, nm(300)));
+        if (d <= 0) return 0; return Math.floor(d / 30) * 0.5;
+      }
+      let st = 1080; if (i !== null && i > 1080) st = i;
+      if (o < st - 720) o += 1440;
+      else if (i !== null && o < st && o < 720 && (o < i || o - i < 120)) o += 1440;
+      let d = o - st; if (d < 0) d = 0;
+      if (!skipped) d -= Math.max(0, Math.min(o, 1110) - Math.max(st, 1080));
+      if (d <= 0) return 0; return Math.floor(d / 30) * 0.5;
+    };
+    // mergedForEmp for every employee of one department in one pass
+    const mergeDept = (logs) => {
+      const all = new Map(); const later = (a, b) => !b || new Date(a) >= new Date(b);
+      (logs || []).forEach(h => {
+        const savedAt = h.savedAt || 0;
+        const isImport = h.source === 'import' || /^(admin|timesheet_|cnc_timesheet_|correction-timesheet)/.test(h.source || '');
+        const fromEmployee = h.source === 'calendar-self';
+        (h.rows || []).forEach(r => {
+          if (!r || !r.empId || !r.date) return;
+          const id = String(r.empId).trim();
+          let byDate = all.get(id); if (!byDate) { byDate = new Map(); all.set(id, byDate); }
+          const prev = byDate.get(r.date) || {};
+          const next = { ...prev, empId: id, name: r.name || prev.name, date: r.date };
+          const lock = r.date >= TIMESHEET_FROM && !isImport;
+          if (!lock && (r.timeIn || isImport) && later(savedAt, prev._tIn)) { next.timeIn = r.timeIn || ''; next._tIn = savedAt; }
+          if (!lock && (r.timeOut || isImport) && later(savedAt, prev._tOut)) { next.timeOut = r.timeOut || ''; next._tOut = savedAt; }
+          if (isImport && later(savedAt, prev._hnAt)) { next.hrNote = (r.reason || '').trim(); next._hnAt = savedAt; }
+          if ((r.reason || r.normalAttend || !isImport) && later(savedAt, prev._rAt)) { next.reason = r.reason; next.normalAttend = r.normalAttend; next._rAt = savedAt; }
+          else if (isImport && ((r.timeIn && r.timeOut && /ไม่ได้สแกนนิ้ว|สแกนครั้งเดียว|สแกนนิ้วขาเดียว|สแกนขาเดียว/.test(next.reason || '')) || /^\s*(มา)?สาย\s*$|^\s*ขาด(งาน)?\s*$/.test(next.reason || '')) && later(savedAt, prev._rAt)) { next.reason = ''; next._rAt = savedAt; }
+          const nl = isImport && !r.leaveType ? inferLeave(r.reason) : null;
+          const lt = r.leaveType || (nl && nl.leaveType) || '';
+          if (!fromEmployee && lt && later(savedAt, prev._lAt)) { next.leaveType = lt; next.leaveDuration = r.leaveType ? r.leaveDuration : nl.leaveDuration; next.leaveStart = r.leaveStart; next.leaveEnd = r.leaveEnd; next.leaveReason = r.reason || ''; next._lAt = savedAt; }
+          if (later(savedAt, prev._sAt)) { next.shift = r.shift; next.skippedBreak = r.skippedBreak; next._sAt = savedAt; }
+          byDate.set(r.date, next);
+        });
+      });
+      return all;
+    };
+    const startOf = (id) => (G.startDates || {})[id] || (G.rosterHire || {})[id] || '';
+    const today = new Date(); const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const nowPrefix = todayIso.slice(0, 7);
+    // OT hours of one month (same as the calendar's monthOt)
+    const monthOt = (id, merged, prefix) => {
+      const [y, m] = prefix.split('-').map(Number); const n = new Date(y, m, 0).getDate(); let tot = 0, days = 0;
+      for (let d = 1; d <= n; d++) {
+        const iso = `${prefix}-${pad(d)}`; const row = merged.get(iso); const hr = (G.hrAtt || {})[`${id}_${iso}`] || {};
+        if (!row && !hr.actualTimeIn) continue; const r = row || {};
+        const lt = r.leaveType || hr.leaveType || ''; const ld = r.leaveDuration || hr.leaveDuration || '';
+        if (r.normalAttend || (lt && (ld || 'day') === 'day')) continue;
+        const tin = r.timeIn || hr.actualTimeIn || '', tout = r.timeOut || '';
+        const ot = otHours(tout, tin, iso, r.shift || deriveShift(tin, tout, id), !!r.skippedBreak);
+        if (ot > 0) { tot += ot; days++; }
+      }
+      return { ot: tot, otDays: days };
+    };
+    const monthStats = (id, merged, prefix, firstScan) => {
+      const st = { vacation: 0, personal: 0, sickNoCert: 0, sickCert: 0, absentDays: 0, lateCount: 0, absentHours: 0 };
+      const [y, m] = prefix.split('-').map(Number); const n = new Date(y, m, 0).getDate();
+      const fieldOf = { vacation: 'vacation', personal: 'personal', sick: 'sickNoCert', sick_cert: 'sickCert' };
+      for (let d = 1; d <= n; d++) {
+        const iso = `${prefix}-${pad(d)}`; if (iso >= todayIso) break;
+        const row = merged.get(iso) || {}; const hr = (G.hrAtt || {})[`${id}_${iso}`] || {};
+        const lt = row.leaveType || hr.leaveType || '';
+        if (lt) { const src = row.leaveType ? row : hr; const hrs = leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd, reason: src.leaveReason || src.reason }); if (fieldOf[lt]) st[fieldOf[lt]] += hrs / 8; continue; }
+        if (isWeekend(iso)) continue;
+        if (row.normalAttend || hr.ack) continue;
+        if (!row.timeIn && !row.timeOut && row.hrNote && !/ขาด|ไม่ได้สแกน|สแกนครั้งเดียว|สแกนนิ้วขาเดียว|สแกนขาเดียว|^\s*(มา)?สาย\s*$/.test(row.hrNote)) continue;
+        if (!row.timeIn && !row.timeOut && !/ขาด/.test(row.hrNote || row.reason || '') && /อบรม|onsite|on-site|on site|work from home|wfh|ดูงาน|สัมมนา|ออกนอกสถานที่|ไปงาน|ติดตั้ง|support|หัวหน้ารับทราบ/i.test(row.hrNote || row.reason || '')) continue;
+        const tin = row.timeIn || hr.actualTimeIn || '', tout = row.timeOut || '';
+        if (!tin && !tout) { const sd = startOf(id); if (sd && iso < sd) continue; if (firstScan && iso < firstScan) continue; st.absentDays += 1; continue; }
+        const sh = row.shift || deriveShift(tin, tout, id);
+        if (sh !== 'night') { const lr = lateRule(tin, row.hrNote || row.reason || ''); if (lr.late) st.lateCount++; st.absentHours += lr.ah; st.absentDays += lr.ad; }
+      }
+      return st;
+    };
+    // รายละเอียดรายวัน สำหรับหน้าปฏิทินรายคน
+    const dayList = (id, merged, prefix) => {
+      const [y, m] = prefix.split('-').map(Number); const n = new Date(y, m, 0).getDate(); const out = [];
+      let first = ''; merged.forEach((v, k) => { if ((v.timeIn || v.timeOut) && (!first || k < first)) first = k; });
+      const sd = startOf(id);
+      for (let d = 1; d <= n; d++) {
+        const iso = `${prefix}-${pad(d)}`; const r = merged.get(iso) || {}; const hr = (G.hrAtt || {})[`${id}_${iso}`] || {};
+        const lt = r.leaveType || hr.leaveType || ''; const src = r.leaveType ? r : hr;
+        const ld = src.leaveDuration || 'day';
+        const tin = r.timeIn || hr.actualTimeIn || '', tout = r.timeOut || '';
+        const wk = isWeekend(iso), holiday = hol.has(iso);
+        const shift = r.shift || deriveShift(tin, tout, id);
+        const ot = (r.normalAttend || (lt && ld === 'day')) ? 0 : otHours(tout, tin, iso, shift, !!r.skippedBreak);
+        const note = (r.hrNote || r.reason || '').trim();
+        let late = false, ah = 0, ad = 0, absent = false;
+        const past = iso < todayIso;
+        if (!lt && !wk && past && !r.normalAttend && !hr.ack) {
+          const exempt = (!tin && !tout && r.hrNote && !/ขาด|ไม่ได้สแกน|สแกนครั้งเดียว|สแกนนิ้วขาเดียว|สแกนขาเดียว|^\s*(มา)?สาย\s*$/.test(r.hrNote)) ||
+            (!tin && !tout && !/ขาด/.test(note) && /อบรม|onsite|on-site|on site|work from home|wfh|ดูงาน|สัมมนา|ออกนอกสถานที่|ไปงาน|ติดตั้ง|support|หัวหน้ารับทราบ/i.test(note));
+          if (!exempt) {
+            if (!tin && !tout) absent = !!first && iso >= first && !(sd && iso < sd);
+            else if (shift !== 'night') { const lr = lateRule(tin, note); late = lr.late; ah = lr.ah; ad = lr.ad; }
+          }
+        }
+        out.push({ iso, d, tin, tout, ot, shift, lt, ld, leaveHrs: lt ? leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd, reason: src.leaveReason || src.reason }) : 0,
+          wk, holiday, note, late, ah, ad, absent, future: iso >= todayIso });
+      }
+      return out;
+    };
+    return { mergeDept, monthOt, monthStats, dayList, startOf, nowPrefix, todayIso };
+  }
+  return { make, labelOf, prefixOf, TIMESHEET_FROM, pad };
+})();
+
+// Build every month × department × employee record
+// D: { holidays, startDates, hrAtt, depts:[{prefix,label,group,rows,history,monthlyLeave,roster}] }
+// พนักงานที่ได้รับยกเว้นการสแกนนิ้ว: นับเป็นพนักงานทุกเดือน ไม่นับขาดงานจากการไม่สแกน แต่ยังนับลา/ขาดจากหมายเหตุ
+const SCAN_EXEMPT = { '450822': 'SALE & MARKETTING' };
+function buildAll(D, fromPrefix) {
+  const rosterHire = {};
+  D.depts.forEach(d => (d.roster || []).forEach(r => { if (r && r.empId && r.hireDate) rosterHire[String(r.empId).trim()] = r.hireDate; }));
+  const E = ENGINE.make({ holidays: D.holidays, startDates: D.startDates, hrAtt: D.hrAtt, rosterHire });
+  const months = []; let [y, m] = fromPrefix.split('-').map(Number);
+  while (`${y}-${ENGINE.pad(m)}` <= E.nowPrefix) { months.push(`${y}-${ENGINE.pad(m)}`); m++; if (m > 12) { m = 1; y++; } }
+  const hrActive = new Set(); Object.keys(D.hrAtt || {}).forEach(k => { const v = D.hrAtt[k] || {}; if (v.actualTimeIn || v.leaveType) { const i = k.lastIndexOf('_'); hrActive.add(k.slice(0, i) + '_' + k.slice(i + 1, i + 8)); } });
+  const G_hr = (id, prefix) => hrActive.has(id + '_' + prefix);
+  const mergedBy = {};
+  // พนักงานอยู่แผนกไหน ยึดตามรายชื่อ (_rows) — คนที่มีแค่ใน history ของแผนกอื่นจะไม่ถูกนับซ้ำ
+  const rosterOf = {};
+  D.depts.forEach(d => (d.rows || []).forEach(r => { if (r && r.empId) { const id = String(r.empId).trim(); (rosterOf[id] = rosterOf[id] || new Set()).add(d.label); } }));
+  // เดือนแรกที่มีข้อมูลสแกนในระบบ (ก่อนหน้านั้นใช้รายชื่อ + สรุปที่นำเข้าเหมือนเดิม)
+  let scanFrom = '';
+  D.depts.forEach(d => (d.history || []).forEach(h => (h.rows || []).forEach(r => { if (r && r.date && (r.timeIn || r.timeOut) && (!scanFrom || r.date < scanFrom)) scanFrom = r.date; })));
+  scanFrom = scanFrom.slice(0, 7);
+  const recs = []; // {month, dept, group, empId, name, ot, otDays, late, absentDays, absentHours, personal, sick, vacation}
+  D.depts.forEach(d => {
+    const merged = E.mergeDept(d.history); mergedBy[d.label] = merged;
+    const names = {}; const rosterIds = new Set();
+    Object.keys(SCAN_EXEMPT).forEach(id => { if (SCAN_EXEMPT[id] === d.label) rosterIds.add(id); });
+    (d.rows || []).forEach(r => { if (r && r.empId) { const id = String(r.empId).trim(); rosterIds.add(id); names[id] = r.name || names[id]; } });
+    merged.forEach((byDate, id) => { if (!names[id]) { for (const v of byDate.values()) { if (v.name) { names[id] = v.name; break; } } } });
+    const ml = (d.monthlyLeave || []).filter(r => r && r.empId && r.month);
+    ml.forEach(r => { const id = String(r.empId).trim(); if (!names[id] && r.name) names[id] = r.name; });
+    months.forEach(prefix => {
+      const label = ENGINE.labelOf(prefix);
+      const [yy, mm] = prefix.split('-').map(Number); const monthEnd = `${prefix}-${ENGINE.pad(new Date(yy, mm, 0).getDate())}`;
+      const ids = new Set();
+      rosterIds.forEach(id => { const sd = E.startOf(id); if (!sd || sd <= monthEnd) ids.add(id); });
+      merged.forEach((byDate, id) => { for (const k of byDate.keys()) { if (k.startsWith(prefix)) { ids.add(id); break; } } });
+      ml.forEach(r => { if (r.month === label) ids.add(String(r.empId).trim()); });
+      const importedIds = new Set(ml.filter(r => r.month === label).map(r => String(r.empId).trim()));
+      ids.forEach(id => {
+        // คนที่อยู่ในรายชื่อแผนกอื่น ไม่นับในแผนกนี้
+        if (!rosterIds.has(id) && rosterOf[id] && !rosterOf[id].has(d.label)) return;
+        // ตัดคนลาออก: ตั้งแต่เดือนที่มีข้อมูลสแกน ต้องมีสแกน/การลาในเดือนนั้น หรือมีสรุปที่นำเข้า
+        // (ยกเว้นคนในรายชื่อที่ไม่เคยสแกนเลย เช่น ผู้ที่ได้รับยกเว้นการสแกน หรือพนักงานใหม่ที่ยังไม่เริ่มสแกน)
+        if (scanFrom && prefix >= scanFrom && !importedIds.has(id)) {
+          const mgx = merged.get(id); let active = false, everScan = false;
+          if (mgx) mgx.forEach((v, k) => { if (v.timeIn || v.timeOut) { everScan = true; if (k.startsWith(prefix)) active = true; } else if (k.startsWith(prefix) && v.leaveType) active = true; });
+          if (!active && !(G_hr(id, prefix))) { if (everScan || !rosterIds.has(id)) return; }
+        }
+        const mg = merged.get(id) || new Map();
+        const o = E.monthOt(id, mg, prefix);
+        const s = { vacation: 0, personal: 0, sickNoCert: 0, sickCert: 0, absentDays: 0, lateCount: 0, absentHours: 0 };
+        const imported = ml.filter(r => String(r.empId).trim() === id && r.month === label);
+        // นับขาด/ลา/มาสายจากใบลงเวลา เฉพาะคนที่มีเวลาสแกนในเดือนนั้น (คนที่ไม่ต้องสแกน/ยังไม่เริ่มงาน ไม่ถูกนับขาดทั้งเดือน)
+        let scanned = false, first = '';
+        mg.forEach((v, k) => { if (v.timeIn || v.timeOut) { if (!first || k < first) first = k; if (k.startsWith(prefix)) scanned = true; } else if (v.leaveType && k.startsWith(prefix)) scanned = true; });
+        if (prefix >= ENGINE.TIMESHEET_FROM && (prefix === E.nowPrefix || !imported.length) && (scanned || SCAN_EXEMPT[id])) {
+          const t = E.monthStats(id, mg, prefix, SCAN_EXEMPT[id] ? '9999-99-99' : first); Object.keys(s).forEach(k => s[k] += t[k] || 0);
+        }
+        if (prefix < E.nowPrefix) imported.forEach(r => Object.keys(s).forEach(k => s[k] += parseFloat(r[k]) || 0));
+        recs.push({ month: prefix, dept: d.label, group: d.group, empId: id, name: names[id] || id, ot: o.ot, otDays: o.otDays,
+          late: s.lateCount, absentDays: s.absentDays, absentHours: s.absentHours, personal: s.personal, sick: s.sickNoCert + s.sickCert, vacation: s.vacation });
+      });
+    });
+  });
+  return { months, recs, nowPrefix: E.nowPrefix, todayIso: E.todayIso, E, mergedBy };
+}
+
+// ===== Executive dashboard UI =====
+// MODE: 'exec' = หน้าผู้บริหาร, 'daily' = หน้ารายงานคำขอโอทีประจำวัน (อยู่ในหน้า Admin)
+const MODE = (typeof PAGE_MODE !== 'undefined') ? PAGE_MODE : 'exec';
+const DB = 'https://poomjai-ot-default-rtdb.asia-southeast1.firebasedatabase.app';
+// รหัสเข้าสู่ระบบ: PJ2569 = ผู้บริหาร เห็นทุกแผนก / รหัสแผนก = เห็นเฉพาะแผนกของตน
+// แก้รหัสหรือเพิ่มได้ที่นี่ (1 รหัสใส่ได้หลายแผนก)
+const ACCESS = {
+  'PJ2569': null,                                                    // ผู้บริหาร — ทุกแผนก
+  'PJ001': ['ACCOUNT', 'STORE'],                                     // คัคนางค์
+  'PJ002': ['PURCHASE'],                                             // สุภาพร
+  'PJ003': ['PLANNER', 'MANUAL', 'CNC', 'WIRE CUT', 'PJT1'],         // คำรณ
+  'PJ004': ['DESIGN'],                                               // ศุภฤกษ์
+  'PJ005': ['SALE & MARKETTING', 'AUTOMATION & ASSEMBLY', 'JIG-FIXTURE'], // ประภาส
+  'PJ006': ['INJECTION'],                                            // โรง 2
+  'PJ007': ['AUTOMATION MACHINE PJT'],                               // โรง 4
+  'PJ008': ['DCI']                                                   // โรง 5 Production
+};
+const GROUPS = [
+  { key: 'PJE', label: 'PJE (โรง 1)', color: '#257de0' },
+  { key: 'INJ', label: 'Injection', color: '#f47230' },
+  { key: 'AM', label: 'Automation Machine', color: '#00b894' },
+  { key: 'PDT', label: 'Production (PDT DCI)', color: '#f2a600' }
+];
+const DEPTS = [
+  ['accountOT', 'ACCOUNT', 'PJE'], ['automationassemblyOT', 'AUTOMATION & ASSEMBLY', 'PJE'], ['automationmachinepjtOT', 'AUTOMATION MACHINE PJT', 'AM'],
+  ['cncOT', 'CNC', 'PJE'], ['dciOT', 'DCI', 'PDT'], ['designOT', 'DESIGN', 'PJE'], ['injectionOT', 'INJECTION', 'INJ'],
+  ['jigfixtureOT', 'JIG-FIXTURE', 'PJE'], ['manualOT', 'MANUAL', 'PJE'], ['personalOT', 'PERSONAL', 'PJE'], ['pjt1OT', 'PJT1', 'AM'],
+  ['plannerOT', 'PLANNER', 'PJE'], ['purchaseOT', 'PURCHASE', 'PJE'], ['qualitycontrolOT', 'QUALITY CONTROL', 'PJE'], ['safetyOT', 'SAFETY', 'PJE'],
+  ['salemarkettingOT', 'SALE & MARKETTING', 'PJE'], ['storeOT', 'STORE', 'PJE'], ['wirecutOT', 'WIRE CUT', 'PJE']
+];
+const TM = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TMS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const groupOf = {}; DEPTS.forEach(d => groupOf[d[1]] = d[2]);
+const gInfo = (k) => GROUPS.find(g => g.key === k);
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (n, dp = 1) => { const v = Math.round((n || 0) * 100) / 100; return v.toLocaleString('en-US', { maximumFractionDigits: dp }); };
+const mLong = (p) => { const [y, m] = p.split('-').map(Number); return `${TM[m - 1]} ${y + 543}`; };
+const mShort = (p) => { const [y, m] = p.split('-').map(Number); return `${TMS[m - 1]}${String(y + 543).slice(-2)}`; };
+const daysTxt = (d, h) => { let s = `${fmt(d)} วัน`; if (h > 0) s += ` (+${fmt(h)} ชม.)`; return s; };
+
+const S = { data: null, month: '', group: 'ALL', deptOpen: '', sortKey: 'ot', loading: false, scope: null };
+if (MODE === 'daily') { Object.keys(ACCESS).forEach(k => delete ACCESS[k]); ACCESS['092525'] = null; ACCESS['PJ2569'] = null; }
+const findCode = (v) => Object.keys(ACCESS).find(k => k.toUpperCase() === String(v || '').trim().toUpperCase());
+
+// ---------- login ----------
+function showLogin() {
+  $('#app').innerHTML = `
+  <div class="login"><div class="login-card">
+    <div class="logo">Poomjai Group</div>
+    <h1>${MODE === 'daily' ? 'Admin · รายงานคำขอโอทีประจำวัน' : 'รายงานสรุปสำหรับผู้บริหาร'}</h1>
+    <p class="muted">${MODE === 'daily' ? 'ทำโอทีไม่ขอ · ไม่อนุมัติ · อนุมัติแต่ไม่ทำ · หัวหน้าไม่ตอบ' : 'OT และ ขาด–ลา–มาสาย รายเดือน แยกโรงงาน / แผนก'}</p>
+    <input id="pw" type="password" placeholder="รหัสเข้าสู่ระบบ" autocomplete="current-password">
+    <button id="go">เข้าสู่ระบบ</button>
+    <div id="err" class="err"></div>
+  </div></div>`;
+  const go = () => {
+    const code = findCode($('#pw').value);
+    if (code) { S.scope = ACCESS[code]; S.group = 'ALL'; S.dept = ''; try { sessionStorage.setItem(MODE + 'OK', code); } catch (e) {} start(); }
+    else $('#err').textContent = 'รหัสไม่ถูกต้อง';
+  };
+  $('#go').onclick = go; $('#pw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+  $('#pw').focus();
+}
+
+// ---------- data ----------
+const arr = (v) => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+const get = (k) => fetch(`${DB}/${encodeURIComponent(k)}.json`).then(r => { if (!r.ok) throw new Error(k + ' ' + r.status); return r.json(); });
+async function loadData() {
+  const [holidays, startDates, hrAtt] = await Promise.all([get('companyHolidays'), get('employeeStartDates'), get('hrAttendanceRecords')]);
+  const depts = await Promise.all(DEPTS.map(async ([p, l, g]) => {
+    const [rows, history, ml, roster, reqs] = await Promise.all([get(p + '_rows'), get(p + '_history'), get(p + '_monthlyLeave'), get(p + '_roster'), get(p + '_otRequests')]);
+    return { prefix: p, label: l, group: g, rows: arr(rows), history: history ? Object.keys(history).map(k => history[k]) : [], monthlyLeave: arr(ml), roster: arr(roster), requests: arr(reqs) };
+  }));
+  return { holidays: holidays || [], startDates: startDates || {}, hrAtt: hrAtt || {}, depts };
+}
+
+async function start() {
+  $('#app').innerHTML = `<div class="loading"><div class="spin"></div><div>กำลังดึงข้อมูลจากตารางลงโอทีทุกแผนก…</div></div>`;
+  try {
+    const D = await loadData();
+    await new Promise(r => setTimeout(r, 30));
+    S.data = buildAll(D, '2025-12');
+    // คำขอโอทีทุกแผนก + วันล่าสุดที่มีข้อมูลสแกน
+    S.requests = []; D.depts.forEach(d => (d.requests || []).forEach(q => { if (q && q.empId && q.date) S.requests.push({ ...q, empId: String(q.empId).trim(), reqDept: d.label }); }));
+    let last = ''; Object.values(S.data.mergedBy).forEach(mg => mg.forEach(bd => bd.forEach((v, k) => { if ((v.timeIn || v.timeOut) && k > last && k < S.data.todayIso) last = k; })));
+    S.lastScan = last || S.data.todayIso; if (!S.day) S.day = S.lastScan;
+    S.loadedAt = new Date();
+    const withData = S.data.months.filter(m => S.data.recs.some(r => r.month === m && (r.ot > 0 || r.late > 0 || r.absentDays > 0 || r.personal > 0 || r.sick > 0)));
+    S.monthsAvail = withData.length ? withData : S.data.months;
+    if (!S.month || !S.monthsAvail.includes(S.month)) S.month = S.monthsAvail[S.monthsAvail.length - 1];
+    render();
+  } catch (err) {
+    console.error(err);
+    $('#app').innerHTML = `<div class="loading"><div>ดึงข้อมูลไม่สำเร็จ (${esc(err.message)})</div><button onclick="start()">ลองใหม่</button></div>`;
+  }
+}
+
+// ---------- aggregation ----------
+const blank = () => ({ n: 0, ot: 0, late: 0, absentDays: 0, absentHours: 0, personal: 0, sick: 0, vacation: 0, otPeople: 0 });
+function add(a, r) { a.n++; a.ot += r.ot; a.late += r.late; a.absentDays += r.absentDays; a.absentHours += r.absentHours; a.personal += r.personal; a.sick += r.sick; a.vacation += r.vacation; if (r.ot > 0) a.otPeople++; }
+const recsOf = (month, group) => S.data.recs.filter(r => r.month === month && (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (group === 'ALL' || groupOf[r.dept] === group));
+const rangeOf = (from, to) => S.monthsAvail.filter(m => m >= from && m <= to);
+const rangeLabel = (from, to) => from === to ? mLong(to) : (from.slice(0, 4) === to.slice(0, 4) ? `${TM[+from.slice(5) - 1]} – ${mLong(to)}` : `${mLong(from)} – ${mLong(to)}`);
+const rangeShort = (from, to) => from === to ? mShort(to) : `${mShort(from)}–${mShort(to)}`;
+// รวมยอดหลายเดือนเป็น 1 แถวต่อคน
+function aggRange(from, to, filter) {
+  const ms = new Set(rangeOf(from, to)); const map = new Map();
+  S.data.recs.forEach(r => { if (!ms.has(r.month) || !filter(r)) return; const k = r.dept + '|' + r.empId;
+    let x = map.get(k); if (!x) { x = { month: to, dept: r.dept, empId: r.empId, name: r.name, ot: 0, otDays: 0, late: 0, absentDays: 0, absentHours: 0, personal: 0, sick: 0, vacation: 0 }; map.set(k, x); }
+    ['ot', 'otDays', 'late', 'absentDays', 'absentHours', 'personal', 'sick', 'vacation'].forEach(f => x[f] += r[f] || 0); });
+  return [...map.values()];
+}
+const inGroup = (g) => (r) => (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (g === 'ALL' || groupOf[r.dept] === g);
+function total(recs) { const t = blank(); recs.forEach(r => add(t, r)); return t; }
+function byDept(recs) { const m = {}; recs.forEach(r => add(m[r.dept] || (m[r.dept] = blank()), r)); return m; }
+
+// ---------- render ----------
+function render() {
+  if (MODE === 'daily') return renderDay();
+  if (!S.from || S.from > S.month) S.from = S.month;
+  const month = S.month, from = S.from, single = from === month;
+  const span = rangeOf(from, month), recs = aggRange(from, month, inGroup(S.group)), T = total(recs);
+  const iTo = S.monthsAvail.indexOf(month), iFrom = S.monthsAvail.indexOf(from), len = iTo - iFrom + 1;
+  const pFrom = iFrom - len >= 0 ? S.monthsAvail[iFrom - len] : '', pTo = iFrom - 1 >= 0 ? S.monthsAvail[iFrom - 1] : '';
+  const P = single && pFrom && pTo ? total(aggRange(pFrom, pTo, inGroup(S.group))) : null; // เทียบเดือนก่อนเฉพาะเมื่อเลือกเดือนเดียว
+  const isCurrent = month === S.data.nowPrefix;
+  const asOf = new Date(); asOf.setDate(asOf.getDate() - 1);
+  const endTxt = isCurrent ? `${asOf.getDate()} ${TMS[asOf.getMonth()]} ${asOf.getFullYear() + 543}` : `${new Date(+month.slice(0, 4), +month.slice(5), 0).getDate()} ${TMS[+month.slice(5) - 1]} ${+month.slice(0, 4) + 543}`;
+  const sub = `ช่วงข้อมูล 1 ${TMS[+from.slice(5) - 1]} ${+from.slice(0, 4) + 543} – ${endTxt}${single ? '' : ` · รวม ${len} เดือน`}${isCurrent ? ' (เดือนปัจจุบันยังไม่ครบเดือน)' : ''}`;
+  const delta = (cur, old) => {
+    if (!P || !old) return '';
+    const pct = (cur - old) / old * 100; const up = pct >= 0;
+    return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${fmt(Math.abs(pct), 0)}% จาก ${rangeShort(pFrom, pTo)}</span>`;
+  };
+  const gLabel = S.dept ? S.dept : S.scope ? (S.scope.length > 1 ? 'ภาพรวม ' + S.scope.length + ' แผนก' : S.scope[0]) : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
+
+  $('#app').innerHTML = `
+  <header class="top">
+    <div>
+      <div class="eyebrow">Poomjai Group · ${S.scope ? 'รายงานแผนก ' + esc(S.scope.join(', ')) : 'รายงานสำหรับผู้บริหาร'}</div>
+      <h1>สรุป OT และ ขาด–ลา–มาสาย · ${rangeLabel(from, month)}</h1>
+      <div class="muted">${sub}</div>
+    </div>
+    <div class="actions no-print">
+      <label class="rng">ตั้งแต่ <select id="from">${S.monthsAvail.slice().reverse().map(m => `<option value="${m}" ${m === from ? 'selected' : ''}>${mLong(m)}</option>`).join('')}</select></label>
+      <label class="rng">ถึง <select id="month">${S.monthsAvail.slice().reverse().map(m => `<option value="${m}" ${m === month ? 'selected' : ''}>${mLong(m)}</option>`).join('')}</select></label>
+      <button id="refresh" class="ghost" title="ดึงข้อมูลล่าสุด">↻ อัปเดต</button>
+      <button id="print" class="ghost">🖨 พิมพ์ / PDF</button>
+      <button id="logout" class="ghost">ออก</button>
+    </div>
+  </header>
+  ${S.scope ? (S.scope.length > 1 ? `<nav class="chips dchips no-print">${[{ k: '', l: `ภาพรวม (${S.scope.length} แผนก)` }, ...S.scope.map(d => ({ k: d, l: d }))].map(c => `<button class="chip ${S.dept === c.k ? 'on' : ''}" data-d="${esc(c.k)}">${esc(c.l)}</button>`).join('')}</nav>` : '') : `<nav class="chips no-print">
+    ${[{ key: 'ALL', label: 'ทั้งบริษัท' }, ...GROUPS].map(g => `<button class="chip ${S.group === g.key ? 'on' : ''}" data-g="${g.key}">${g.color ? `<i style="background:${g.color}"></i>` : ''}${g.label}</button>`).join('')}
+  </nav>`}
+
+  <section class="kpis">
+    ${kpi('พนักงาน', fmt(T.n, 0), 'คน', `${gLabel}`)}
+    ${kpi('OT รวม', fmt(T.ot), 'ชั่วโมง', delta(T.ot, P && P.ot), true)}
+    ${kpi('OT เฉลี่ย', fmt(T.n ? T.ot / T.n : 0), 'ชม./คน', single ? `ทำโอที ${fmt(T.otPeople, 0)} คน` : `รวม ${len} เดือน · ≈ ${fmt(T.n ? T.ot / T.n / len : 0)} ชม./คน/เดือน`)}
+    ${kpi('มาสาย', fmt(T.late, 0), 'ครั้ง', delta(T.late, P && P.late))}
+    ${kpi('ขาดงาน', fmt(T.absentDays), 'วัน', T.absentHours > 0 ? `+ ${fmt(T.absentHours)} ชม.` : '')}
+    ${kpi('ลากิจ', fmt(T.personal), 'วัน', '')}
+    ${kpi('ลาป่วย', fmt(T.sick), 'วัน', '')}
+  </section>
+
+  ${S.group === 'ALL' && !S.scope ? factoryCards(month) : ''}
+
+  ${monthCard('main', seriesOf(inView), 'กราฟสรุปรายเดือน', gLabel)}
+
+  <section class="card">
+    <div class="card-h"><h2>${S.scope ? 'OT รายคน (ชั่วโมง)' : 'OT รายแผนก (ชั่วโมง)'}</h2><span class="muted">${gLabel} · ${rangeShort(from, month)}</span></div>
+    ${S.scope ? empBars(recs) : deptBars(recs)}
+  </section>
+
+  <section class="card">
+    ${S.scope && S.scope.length > 1 && !S.dept ? `<div class="card-h"><h2>สรุปแยกแต่ละแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายงานของแผนกนั้น</span></div>${deptTable(recs)}</section><section class="card">` : ''}
+    ${S.scope ? `<div class="card-h"><h2>รายชื่อพนักงาน</h2><span class="muted no-print">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวัน</span></div>${empTable(recs)}`
+      : `<div class="card-h"><h2>รายละเอียดทุกแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>${deptTable(recs)}`}
+  </section>
+
+  <section class="card">
+    <div class="card-h"><h2>อันดับพนักงาน (Top 5 ต่อหมวด)</h2><span class="muted">${gLabel} · ${rangeShort(from, month)}</span></div>
+    <div class="tops">
+      ${top5(recs, 'OT สูงสุด', r => r.ot, r => `${fmt(r.ot)} ชม.`)}
+      ${top5(recs, 'มาสายสูงสุด', r => r.late, r => `${fmt(r.late, 0)} ครั้ง`)}
+      ${top5(recs, 'ขาดงานสูงสุด', r => r.absentDays + r.absentHours / 8, r => daysTxt(r.absentDays, r.absentHours))}
+      ${top5(recs, 'ลาป่วยสูงสุด', r => r.sick, r => `${fmt(r.sick)} วัน`)}
+    </div>
+  </section>
+
+  <footer class="muted">สรุปอัตโนมัติจากตารางลงโอทีพนักงานทุกแผนก · OT คำนวณจากเวลาสแกนตามกฎเดียวกับหน้าปฏิทิน · ขาด/ลา/มาสาย ใช้สรุปรายเดือนที่ฝ่ายบุคคลนำเข้า (ถ้ามี) ไม่เช่นนั้นนับจากใบลงเวลา ·
+    ดึงข้อมูลเมื่อ ${S.loadedAt.toLocaleString('th-TH')}</footer>
+  <div id="tip" class="tip"></div>
+  <div id="drawer"></div>`;
+
+  $('#month').onchange = (e) => { S.month = e.target.value; if (S.from > S.month) S.from = S.month; render(); };
+  $('#from').onchange = (e) => { S.from = e.target.value; if (S.from > S.month) S.month = S.from; render(); };
+  $('#refresh').onclick = () => start();
+  $('#print').onclick = () => window.print();
+  $('#logout').onclick = () => { try { sessionStorage.removeItem(MODE + 'OK'); } catch (e) {} showLogin(); };
+  document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.group = b.dataset.g; render(); });
+  document.querySelectorAll('.chip[data-d]').forEach(b => b.onclick = () => { S.dept = b.dataset.d; render(); });
+  document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => openDept(el.dataset.dept));
+  if (S.scope && S.scope.length > 1 && !S.dept) document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => { S.dept = el.dataset.dept; render(); window.scrollTo(0, 0); });
+  document.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { S.sortKey = el.dataset.sort; render(); });
+  bindMonthCard('main', (m) => { S.month = m; S.from = m; render(); window.scrollTo(0, 0); });
+  bindTips(); bindEmp();
+}
+
+// ---------- รายงานประจำวัน ----------
+function navChips() {
+  return S.scope ? (S.scope.length > 1 ? `<nav class="chips dchips no-print">${[{ k: '', l: `ภาพรวม (${S.scope.length} แผนก)` }, ...S.scope.map(d => ({ k: d, l: d }))].map(c => `<button class="chip ${S.dept === c.k ? 'on' : ''}" data-d="${esc(c.k)}">${esc(c.l)}</button>`).join('')}</nav>` : '')
+    : `<nav class="chips no-print">${[{ key: 'ALL', label: 'ทั้งบริษัท' }, ...GROUPS].map(g => `<button class="chip ${S.group === g.key ? 'on' : ''}" data-g="${g.key}">${g.color ? `<i style="background:${g.color}"></i>` : ''}${g.label}</button>`).join('')}</nav>`;
+}
+const dayCache = new Map();
+function dayInfo(dept, id, iso) {
+  const key = dept + '|' + id + '|' + iso.slice(0, 7);
+  let list = dayCache.get(key);
+  if (!list) { const mg = (S.data.mergedBy[dept] || new Map()).get(id) || new Map(); list = S.data.E.dayList(id, mg, iso.slice(0, 7)); dayCache.set(key, list); }
+  return list[+iso.slice(8) - 1] || {};
+}
+const thDate = (iso) => { const d = new Date(iso + 'T00:00:00'); return `${WD[d.getDay()]} ${d.getDate()} ${TMS[d.getMonth()]} ${d.getFullYear() + 543}`; };
+const tStamp = (s) => { if (!s) return '–'; const d = new Date(s); return `${d.getDate()} ${TMS[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function dailyReport(iso) {
+  const month = iso.slice(0, 7), inV = inGroup(S.group);
+  const people = S.data.recs.filter(r => r.month === month && inV(r));
+  const deptOf = {}; people.forEach(r => { deptOf[r.empId] = r.dept; });
+  // คำขอของวันนั้น (ล่าสุดต่อคน ไม่นับที่ยกเลิก)
+  const req = {};
+  S.requests.filter(q => q.date === iso && q.status !== 'cancelled').forEach(q => {
+    const p = req[q.empId]; if (!p || String(q.requestedAt || '') > String(p.requestedAt || '')) req[q.empId] = q; });
+  const out = { noReq: [], rejected: [], noShow: [], pending: [] };
+  people.forEach(r => {
+    const d = dayInfo(r.dept, r.empId, iso); const q = req[r.empId];
+    const base = { dept: r.dept, empId: r.empId, name: r.name, tin: d.tin || '', tout: d.tout || '', ot: d.ot || 0, shift: d.shift, note: d.note || '', lt: d.lt, q };
+    if (!q) { if (d.ot > 0) out.noReq.push(base); return; }
+    if (q.status === 'rejected') out.rejected.push(base);
+    else if (q.status === 'pending') out.pending.push(base);
+    else if (q.status === 'approved' && !(d.ot > 0)) out.noShow.push(base);
+  });
+  // คำขอของคนที่ไม่อยู่ในรายชื่อเดือนนั้น (กันตกหล่น)
+  Object.values(req).forEach(q => { if (deptOf[q.empId]) return; if (!inV({ dept: q.reqDept })) return;
+    const base = { dept: q.reqDept, empId: q.empId, name: q.name || q.empId, tin: '', tout: '', ot: 0, note: '', q };
+    if (q.status === 'rejected') out.rejected.push(base); else if (q.status === 'pending') out.pending.push(base); else if (q.status === 'approved') out.noShow.push(base); });
+  Object.values(out).forEach(l => l.sort((a, b) => a.dept.localeCompare(b.dept) || b.ot - a.ot));
+  return out;
+}
+// คำขอที่ค้าง "รออนุมัติ" สะสมทุกวัน (ภายในขอบเขตที่ดูได้)
+function backlog() {
+  const inV = inGroup(S.group); const seen = new Set();
+  const L = S.requests.filter(q => q.status === 'pending' && q.date <= S.data.todayIso && inV({ dept: q.reqDept }))
+    .filter(q => { const k = q.reqDept + q.empId + q.date; if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((x, y) => x.date.localeCompare(y.date));
+  if (!L.length) return '';
+  const byDept = {}; L.forEach(q => byDept[q.reqDept] = (byDept[q.reqDept] || 0) + 1);
+  return `<details class="backlog"><summary>คำขอที่ค้าง "รออนุมัติ" สะสมทุกวัน: <b>${L.length} รายการ</b> — ${Object.entries(byDept).sort((a, b) => b[1] - a[1]).map(([d, n]) => `${esc(d)} ${n}`).join(' · ')}</summary>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>ชื่อ</th><th>วันที่ขอโอที</th><th>ขอเมื่อ</th><th>ค้างมาแล้ว</th><th>งาน</th></tr></thead><tbody>
+    ${L.map(q => `<tr><td>${esc(q.reqDept)}</td><td>${esc(q.name || q.empId)}</td><td>${thDate(q.date)}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 86400000) + ' วัน' : '–'}</td><td class="note-c">${esc(q.note || '')}</td></tr>`).join('')}
+    </tbody></table></div></details>`;
+}
+
+function renderDay() {
+  const iso = S.day; const R = dailyReport(iso);
+  const gLabel = S.dept ? S.dept : S.scope ? (S.scope.length > 1 ? 'ภาพรวม ' + S.scope.length + ' แผนก' : S.scope[0]) : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
+  const noData = iso > S.lastScan;
+  const shiftDay = (n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const CATS = [
+    { k: 'noReq', t: 'ทำโอที แต่ไม่ได้ขอโอที', c: '#c62828', d: 'มีเวลาสแกนที่ได้ OT แต่ไม่มีคำขอโอทีของวันนี้ในระบบ' },
+    { k: 'rejected', t: 'ขอโอทีแล้ว หัวหน้าไม่อนุมัติ', c: '#7b61c9', d: 'คำขอถูกหัวหน้างานปฏิเสธ' },
+    { k: 'noShow', t: 'ขอโอทีแล้ว (อนุมัติ) แต่ไม่ได้ทำ', c: '#e07b00', d: 'อนุมัติแล้ว แต่เวลาสแกนไม่ได้ OT' },
+    { k: 'pending', t: 'ขอโอทีแล้ว หัวหน้ายังไม่ตอบกลับ', c: '#1b64be', d: 'คำขอยังค้างสถานะ "รออนุมัติ" — หัวหน้างานยังไม่ได้ดำเนินการ' }
+  ];
+  const time = (r) => (r.tin || r.tout) ? `${esc(r.tin || '–')} – ${esc(r.tout || '–')}` : '<span class="muted">ไม่มีเวลาสแกน</span>';
+  const LTX = { sick: 'ลาป่วย', sick_cert: 'ลาป่วย(ใบแพทย์)', personal: 'ลากิจ', vacation: 'พักร้อน' };
+  const table = (c) => { const L = R[c.k]; if (!L.length) return '<div class="empty">✓ ไม่มีรายการ</div>';
+    const head = { noReq: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>หมายเหตุ</th>',
+      rejected: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ไม่อนุมัติโดย</th><th>งาน/เหตุผล</th>',
+      noShow: '<th>เวลาเข้า–ออก</th><th>ขอเมื่อ</th><th>อนุมัติโดย</th><th>งาน</th><th>หมายเหตุวันนั้น</th>',
+      pending: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>รอมาแล้ว</th><th>งาน</th>' }[c.k];
+    const row = (r) => { const q = r.q || {}; const wait = q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 3600000) : 0;
+      const cells = { noReq: `<td>${time(r)}</td><td class="num strong">${fmt(r.ot)}</td><td class="note-c">${esc(r.note)}</td>`,
+        rejected: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td>${esc(q.decidedBy || '–')}<small class="muted"> ${tStamp(q.decidedAt)}</small></td><td class="note-c">${esc(q.note || '')}</td>`,
+        noShow: `<td>${time(r)}${r.lt ? ` <em class="t-l">${LTX[r.lt] || r.lt}</em>` : ''}</td><td>${tStamp(q.requestedAt)}</td><td>${esc(q.decidedBy || '–')}</td><td class="note-c">${esc(q.note || '')}</td><td class="note-c">${esc(r.note)}${q.noShowAck ? ' <em class="t-h">หัวหน้ารับทราบแล้ว</em>' : ''}</td>`,
+        pending: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${wait >= 48 ? Math.floor(wait / 24) + ' วัน' : wait + ' ชม.'}</td><td class="note-c">${esc(q.note || '')}</td>` }[c.k];
+      return `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td>${cells}</tr>`; };
+    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th>${head}</tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>`; };
+  // สรุปรายแผนก
+  const depts = [...new Set(CATS.flatMap(c => R[c.k].map(r => r.dept)))].sort();
+  $('#app').innerHTML = `
+  <header class="top"><div>
+      <div class="eyebrow">Poomjai Group · Admin (ฝ่ายบุคคล)</div>
+      <h1>รายงานคำขอโอทีประจำวัน · ${thDate(iso)}</h1>
+      <div class="muted">${gLabel} · เทียบคำขอโอทีในระบบกับเวลาสแกนจริง · ข้อมูลสแกนล่าสุดถึง ${thDate(S.lastScan)}</div></div>
+    <div class="actions no-print">
+      <a class="ghost lbtn" href="./">← หน้า Admin</a>
+      <button class="ghost" id="dPrev">‹ วันก่อน</button><input type="date" id="dPick" value="${iso}" max="${S.data.todayIso}"><button class="ghost" id="dNext">วันถัดไป ›</button>
+      <button class="ghost" id="dLast">ล่าสุด</button>
+      <button id="refresh" class="ghost">↻ อัปเดต</button><button id="print" class="ghost">🖨 พิมพ์ / PDF</button><button id="logout" class="ghost">ออก</button></div>
+  </header>
+  ${navChips()}
+  ${noData ? `<div class="warnbox">ยังไม่มีข้อมูลเวลาสแกนของวันนี้ (นำเข้าใบลงเวลาล่าสุดถึง ${thDate(S.lastScan)}) — หมวด "ทำโอทีแต่ไม่ได้ขอ" และ "อนุมัติแต่ไม่ได้ทำ" จะยังไม่ถูกต้อง</div>` : ''}
+  <section class="dcats">${CATS.map((c, i) => `<a class="dcat" href="#cat-${c.k}" style="--c:${c.c}"><div class="dn2">${i + 1}</div><div><div class="dt">${c.t}</div><div class="dv">${R[c.k].length} <span>คน</span></div></div></a>`).join('')}</section>
+  ${depts.length > 1 ? `<section class="card"><div class="card-h"><h2>สรุปแยกแผนก</h2></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th>${CATS.map((c, i) => `<th class="num">${i + 1}. ${c.t}</th>`).join('')}</tr></thead><tbody>
+    ${depts.map(d => `<tr><td><b>${esc(d)}</b></td>${CATS.map(c => { const n = R[c.k].filter(r => r.dept === d).length; return `<td class="num ${n ? 'warn strong' : ''}">${n || '–'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div></section>` : ''}
+  ${CATS.map((c, i) => `<section class="card" id="cat-${c.k}"><div class="card-h"><div><h2><span class="cbadge" style="background:${c.c}">${i + 1}</span>${c.t} <span class="muted">(${R[c.k].length} คน)</span></h2><div class="muted">${c.d}</div></div></div>${table(c)}${c.k === 'pending' ? backlog() : ''}</section>`).join('')}
+  <footer class="muted">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวันของคนนั้น · ดึงข้อมูลเมื่อ ${S.loadedAt.toLocaleString('th-TH')}</footer>
+  <div id="tip" class="tip"></div><div id="drawer"></div>`;
+  $('#dPick').onchange = (e) => { if (e.target.value) { S.day = e.target.value; render(); } };
+  $('#dPrev').onclick = () => { S.day = shiftDay(-1); render(); };
+  $('#dNext').onclick = () => { S.day = shiftDay(1); render(); };
+  $('#dLast').onclick = () => { S.day = S.lastScan; render(); };
+  $('#refresh').onclick = () => { dayCache.clear(); start(); };
+  $('#print').onclick = () => window.print();
+  $('#logout').onclick = () => { try { sessionStorage.removeItem(MODE + 'OK'); } catch (e) {} showLogin(); };
+  document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.group = b.dataset.g; render(); });
+  document.querySelectorAll('.chip[data-d]').forEach(b => b.onclick = () => { S.dept = b.dataset.d; render(); });
+  bindEmp();
+  document.querySelectorAll('[data-emp]').forEach(el => el.onclick = (e) => { e.stopPropagation(); openEmp(el.dataset.edept, el.dataset.emp, iso.slice(0, 7)); });
+}
+
+function kpi(label, value, unit, foot, hero) {
+  return `<div class="kpi ${hero ? 'hero' : ''}"><div class="kpi-l">${label}</div><div class="kpi-v">${value}<span>${unit}</span></div><div class="kpi-f">${foot || '&nbsp;'}</div></div>`;
+}
+
+function factoryCards(month) {
+  return `<section class="factories">${GROUPS.map(g => {
+    const recs = aggRange(S.from, month, inGroup(g.key)), t = total(recs), nd = new Set(recs.map(r => r.dept)).size;
+    return `<button class="fcard" data-gopen="${g.key}" onclick="S.group='${g.key}';render()">
+      <div class="fh"><i style="background:${g.color}"></i>${g.label}</div>
+      <div class="fsub">${fmt(t.n, 0)} คน · ${nd} แผนก</div>
+      <div class="fot">${fmt(t.ot)} <span>ชม. OT</span></div>
+      <div class="fstats"><span>มาสาย <b>${fmt(t.late, 0)}</b></span><span>ขาด <b>${fmt(t.absentDays)}</b></span><span>ลากิจ <b>${fmt(t.personal)}</b></span><span>ลาป่วย <b>${fmt(t.sick)}</b></span></div>
+    </button>`;
+  }).join('')}</section>`;
+}
+
+function deptBars(recs) {
+  const m = byDept(recs); const rows = Object.keys(m).map(k => ({ k, ...m[k] })).sort((a, b) => b.ot - a.ot);
+  if (!rows.length) return '<div class="empty">ไม่มีข้อมูล</div>';
+  const max = Math.max(...rows.map(r => r.ot), 1);
+  return `<div class="bars">${rows.map(r => {
+    const g = gInfo(groupOf[r.k]);
+    return `<div class="bar-row" data-dept="${esc(r.k)}" data-tip="${esc(r.k)}|OT ${fmt(r.ot)} ชม. · ${fmt(r.n, 0)} คน · เฉลี่ย ${fmt(r.n ? r.ot / r.n : 0)} ชม./คน">
+      <div class="bar-l">${esc(r.k)}</div>
+      <div class="bar-t"><div class="bar-f" style="width:${Math.max(0.5, r.ot / max * 100)}%;background:${S.group === 'ALL' ? g.color : '#257de0'}"></div></div>
+      <div class="bar-v">${fmt(r.ot)}</div></div>`;
+  }).join('')}</div>
+  ${S.group === 'ALL' ? `<div class="legend">${GROUPS.map(g => `<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')}</div>` : ''}`;
+}
+
+// ---------- monthly chart (ภาพรวม + รายบุคคล) ----------
+const inView = (r) => (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (S.group === 'ALL' || groupOf[r.dept] === S.group);
+const METRICS = [
+  { k: 'ot', l: 'OT', u: 'ชม.', c: '#257de0' }, { k: 'late', l: 'มาสาย', u: 'ครั้ง', dp: 0, c: '#d9534f' },
+  { k: 'absent', l: 'ขาดงาน', u: 'วัน', c: '#c62828' }, { k: 'personal', l: 'ลากิจ', u: 'วัน', c: '#7b61c9' }, { k: 'sick', l: 'ลาป่วย', u: 'วัน', c: '#00a389' }
+];
+const MC = {};
+function seriesOf(filter) {
+  return S.monthsAvail.map(m => { const t = total(S.data.recs.filter(r => r.month === m && filter(r)));
+    return { m, n: t.n, ot: t.ot, late: t.late, absent: t.absentDays + t.absentHours / 8, personal: t.personal, sick: t.sick, otPeople: t.otPeople }; });
+}
+function monthCard(key, series, title, sub) {
+  MC[key] = Object.assign(MC[key] || {}, { series, metric: (MC[key] && MC[key].metric) || 'ot', title, sub });
+  return `<section class="card mcard" id="mc-${key}">${monthCardInner(key)}</section>`;
+}
+function monthCardInner(key) {
+  const st = MC[key], mt = METRICS.find(x => x.k === st.metric), sr = st.series;
+  const W = 760, H = 250, L = 48, R = 10, Tp = 24, B = 30;
+  const vals = sr.map(s => s[mt.k]); const raw = Math.max(...vals, 0) * 1.1 || 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw / 4))); const stepV = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s * 4 >= raw); const max = stepV * 4;
+  const slot = (W - L - R) / sr.length, bw = Math.min(46, slot * 0.62);
+  const y = (v) => Tp + (H - Tp - B) * (1 - v / max);
+  let g = ''; for (let i = 0; i <= 4; i++) { const v = stepV * i; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${L - 6}" y="${y(v) + 4}" class="ax" text-anchor="end">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>`; }
+  const inSel = (m) => key === 'emp' ? m === MC.emp.cur : (m >= S.from && m <= S.month);
+  const sel = -1;
+  const bars = sr.map((s, i) => { const v = s[mt.k], cx = L + slot * i + slot / 2, top = y(v), cur = s.m === S.data.nowPrefix;
+    return `<g class="mb" data-m="${s.m}" data-tip="${mLong(s.m)}${cur ? ' (ยังไม่ครบเดือน)' : ''}|${mt.l} ${fmt(v, mt.dp === 0 ? 0 : 1)} ${mt.u}${mt.k === 'ot' && s.n ? ` · เฉลี่ย ${fmt(s.ot / s.n)} ชม./คน` : ''}">
+      <rect x="${L + slot * i}" y="${Tp}" width="${slot}" height="${H - Tp - B}" fill="transparent"/>
+      ${v > 0 ? (y(0) - top >= 5 ? `<path d="M${cx - bw / 2},${y(0)} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${y(0)} Z" fill="${mt.c}" opacity="${inSel(s.m) ? 1 : cur ? 0.35 : 0.55}"/>` : `<rect x="${cx - bw / 2}" y="${y(0) - 2}" width="${bw}" height="2" fill="${mt.c}"/>`) : ''}
+      ${v > 0 ? `<text x="${cx}" y="${top - 5}" text-anchor="middle" class="bv${inSel(s.m) ? ' sel' : ''}">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>` : ''}
+      <text x="${cx}" y="${H - 10}" text-anchor="middle" class="ax${inSel(s.m) ? ' axs' : ''}">${mShort(s.m)}${cur ? '*' : ''}</text></g>`; }).join('');
+  const row = (m) => `<tr><td>${m.l} (${m.u})</td>${sr.map(s => `<td class="num${inSel(s.m) ? ' selc' : ''}">${s[m.k] ? fmt(s[m.k], m.dp === 0 ? 0 : 1) : '–'}</td>`).join('')}<td class="num strong">${fmt(sr.filter(s => key !== 'main' || inSel(s.m)).reduce((t, s) => t + s[m.k], 0), m.dp === 0 ? 0 : 1)}</td></tr>`;
+  return `<div class="card-h"><div><h2>${st.title}</h2><span class="muted">${st.sub} · ทุกเดือนที่มีข้อมูล · ${key === 'main' ? 'แท่งเข้ม = ช่วงที่เลือก · ' : ''}คลิกแท่งเพื่อเปิดเดือนนั้น</span></div>
+    <div class="mtabs no-print">${METRICS.map(m => `<button class="mtab ${m.k === st.metric ? 'on' : ''}" data-mk="${m.k}">${m.l}</button>`).join('')}</div></div>
+    <svg viewBox="0 0 ${W} ${H}" class="trend mchart">${g}<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="#c9d0d8"/>${bars}</svg>
+    ${sr.some(s => s.m === S.data.nowPrefix) ? '<div class="muted" style="font-size:12px">* เดือนปัจจุบัน ยังไม่ครบเดือน · OT มีข้อมูลตั้งแต่ ส.ค.69</div>' : ''}
+    <div class="tbl-wrap"><table class="tbl mtbl"><thead><tr><th></th>${sr.map(s => `<th class="num">${mShort(s.m)}</th>`).join('')}<th class="num">${key === 'main' ? 'รวมช่วงที่เลือก' : 'รวม'}</th></tr></thead><tbody>${METRICS.map(row).join('')}</tbody></table></div>`;
+}
+function bindMonthCard(key, onMonth) {
+  const box = document.getElementById('mc-' + key); if (!box) return;
+  box.querySelectorAll('.mtab').forEach(b => b.onclick = (e) => { e.stopPropagation(); MC[key].metric = b.dataset.mk; box.innerHTML = monthCardInner(key); bindMonthCard(key, onMonth); });
+  box.querySelectorAll('.mb').forEach(g => g.onclick = () => onMonth(g.dataset.m));
+  bindTips();
+}
+
+function trendChart() {
+  const months = S.monthsAvail.filter(m => S.data.recs.some(r => r.month === m && r.ot > 0));
+  if (months.length < 2) return '<div class="empty">ข้อมูล OT ยังมีไม่ถึง 2 เดือน</div>';
+  const vals = months.map(m => total(recsOf(m, S.group)).ot);
+  const W = 520, H = 230, L = 52, R = 16, Tp = 18, B = 34;
+  const raw = Math.max(...vals) * 1.08 || 1, mag = Math.pow(10, Math.floor(Math.log10(raw / 4)));
+  const stepV = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s * 4 >= raw); const max = stepV * 4;
+  const step = (W - L - R) / Math.max(1, months.length - 1);
+  const x = (i) => L + i * step, y = (v) => Tp + (H - Tp - B) * (1 - v / max);
+  const ticks = 4; let grid = '';
+  for (let i = 0; i <= ticks; i++) { const v = stepV * i; grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${L - 8}" y="${y(v) + 4}" class="ax" text-anchor="end">${fmt(v, 0)}</text>`; }
+  const path = vals.map((v, i) => `${i ? 'L' : 'M'}${x(i)},${y(v)}`).join(' ');
+  const sel = months.indexOf(S.month);
+  return `<svg viewBox="0 0 ${W} ${H}" class="trend">${grid}
+    <path d="${path}" fill="none" stroke="#257de0" stroke-width="2"/>
+    ${vals.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="${i === sel ? 6 : 4}" fill="${i === sel ? '#257de0' : '#fff'}" stroke="#257de0" stroke-width="2"/>
+      <rect x="${x(i) - step / 2}" y="${Tp}" width="${step}" height="${H - Tp - B}" fill="transparent" data-tip="${mLong(months[i])}|OT ${fmt(v)} ชม." style="cursor:pointer" onclick="S.month='${months[i]}';render()"/>
+      <text x="${x(i)}" y="${H - 12}" class="ax" text-anchor="middle" ${i === sel ? 'font-weight="700"' : ''}>${mShort(months[i])}${months[i] === S.data.nowPrefix ? '*' : ''}</text>`).join('')}
+    ${sel >= 0 ? `<text x="${x(sel)}" y="${y(vals[sel]) - 12}" text-anchor="middle" class="vl">${fmt(vals[sel])}</text>` : ''}
+  </svg>${months.includes(S.data.nowPrefix) ? '<div class="muted" style="font-size:12px">* เดือนปัจจุบัน ยังไม่ครบเดือน</div>' : ''}`;
+}
+
+function deptTable(recs) {
+  const m = byDept(recs);
+  const rows = Object.keys(m).map(k => ({ k, g: groupOf[k], ...m[k], avg: m[k].n ? m[k].ot / m[k].n : 0 }));
+  const sk = S.sortKey; rows.sort((a, b) => sk === 'k' ? a.k.localeCompare(b.k) : (b[sk] - a[sk]));
+  const T = total(recs);
+  const th = (key, label, cls = 'num') => `<th class="${cls} sortable ${sk === key ? 'sorted' : ''}" data-sort="${key}">${label}${sk === key ? ' ▾' : ''}</th>`;
+  return `<div class="tbl-wrap"><table class="tbl">
+    <thead><tr>${th('k', 'แผนก', '')}<th>โรงงาน</th>${th('n', 'คน')}${th('ot', 'OT (ชม.)')}${th('avg', 'OT/คน')}${th('late', 'มาสาย (ครั้ง)')}${th('absentDays', 'ขาดงาน (วัน)')}${th('personal', 'ลากิจ (วัน)')}${th('sick', 'ลาป่วย (วัน)')}</tr></thead>
+    <tbody>${rows.map(r => `<tr data-dept="${esc(r.k)}" class="click">
+      <td><b>${esc(r.k)}</b></td><td><span class="gtag"><i style="background:${gInfo(r.g).color}"></i>${gInfo(r.g).label}</span></td>
+      <td class="num">${fmt(r.n, 0)}</td><td class="num strong">${fmt(r.ot)}</td><td class="num">${fmt(r.avg)}</td>
+      <td class="num ${r.late ? 'warn' : ''}">${fmt(r.late, 0)}</td><td class="num ${r.absentDays ? 'warn' : ''}">${fmt(r.absentDays)}${r.absentHours ? `<small> +${fmt(r.absentHours)}ชม.</small>` : ''}</td>
+      <td class="num">${fmt(r.personal)}</td><td class="num">${fmt(r.sick)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>รวม</td><td></td><td class="num">${fmt(T.n, 0)}</td><td class="num">${fmt(T.ot)}</td><td class="num">${fmt(T.n ? T.ot / T.n : 0)}</td><td class="num">${fmt(T.late, 0)}</td><td class="num">${fmt(T.absentDays)}${T.absentHours ? `<small> +${fmt(T.absentHours)}ชม.</small>` : ''}</td><td class="num">${fmt(T.personal)}</td><td class="num">${fmt(T.sick)}</td></tr></tfoot>
+  </table></div>`;
+}
+
+function top5(recs, title, val, label) {
+  const list = recs.filter(r => val(r) > 0).sort((a, b) => val(b) - val(a)).slice(0, 5);
+  return `<div class="top"><h3>Top 5 ${title}</h3>${list.length ? `<ol>${list.map(r => `<li class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><div><b>${esc(r.name)}</b><small>${esc(r.dept)}</small></div><span>${label(r)}</span></li>`).join('')}</ol>` : '<div class="empty">— ไม่มีข้อมูล —</div>'}</div>`;
+}
+
+function empTable(recs) {
+  recs = recs.slice().sort((a, b) => b.ot - a.ot);
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th class="num">OT (ชม.)</th><th class="num">วันที่ทำ OT</th><th class="num">มาสาย</th><th class="num">ขาดงาน</th><th class="num">ลากิจ</th><th class="num">ลาป่วย</th><th class="num">พักร้อน</th></tr></thead>
+    <tbody>${recs.map(r => `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td class="num strong">${fmt(r.ot)}</td><td class="num">${fmt(r.otDays, 0)}</td><td class="num ${r.late ? 'warn' : ''}">${fmt(r.late, 0)}</td><td class="num ${r.absentDays || r.absentHours ? 'warn' : ''}">${r.absentDays || r.absentHours ? daysTxt(r.absentDays, r.absentHours) : '0'}</td><td class="num">${fmt(r.personal)}</td><td class="num">${fmt(r.sick)}</td><td class="num">${fmt(r.vacation)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function empBars(recs) {
+  const rows = recs.filter(r => r.ot > 0).sort((a, b) => b.ot - a.ot).slice(0, 15);
+  if (!rows.length) return '<div class="empty">ไม่มีข้อมูล OT</div>';
+  const max = Math.max(...rows.map(r => r.ot), 1);
+  return `<div class="bars">${rows.map(r => `<div class="bar-row" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}" data-tip="${esc(r.name)}|OT ${fmt(r.ot)} ชม. · ${fmt(r.otDays, 0)} วัน"><div class="bar-l">${esc(r.name)}</div><div class="bar-t"><div class="bar-f" style="width:${Math.max(0.5, r.ot / max * 100)}%;background:#257de0"></div></div><div class="bar-v">${fmt(r.ot)}</div></div>`).join('')}</div>${recs.filter(r => r.ot > 0).length > 15 ? '<div class="muted" style="font-size:12px;margin-top:6px">แสดง 15 อันดับแรก</div>' : ''}`;
+}
+
+function openDept(dept) {
+  const recs = aggRange(S.from || S.month, S.month, r => r.dept === dept).sort((a, b) => b.ot - a.ot);
+  const t = total(recs);
+  $('#drawer').innerHTML = `<div class="ov" onclick="if(event.target===this)this.parentNode.innerHTML=''"><div class="sheet">
+    <div class="card-h"><div><h2>${esc(dept)} · ${rangeLabel(S.from || S.month, S.month)}</h2><div class="muted">${fmt(t.n, 0)} คน · OT ${fmt(t.ot)} ชม. · มาสาย ${fmt(t.late, 0)} ครั้ง · ขาด ${daysTxt(t.absentDays, t.absentHours)} · ลากิจ ${fmt(t.personal)} วัน · ลาป่วย ${fmt(t.sick)} วัน</div></div>
+    <button class="ghost" onclick="document.getElementById('drawer').innerHTML=''">ปิด ✕</button></div>
+    ${empTable(recs)}
+  </div></div>`;
+  bindEmp();
+}
+
+function bindEmp() {
+  document.querySelectorAll('[data-emp]').forEach(el => el.onclick = (e) => { e.stopPropagation(); openEmp(el.dataset.edept, el.dataset.emp, S.month); });
+}
+
+const WD = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+const LT = { sick: 'ลาป่วย', sick_cert: 'ลาป่วย (มีใบแพทย์)', personal: 'ลากิจ', vacation: 'พักร้อน', maternity: 'ลาคลอด' };
+function openEmp(dept, empId, month) {
+  const merged = (S.data.mergedBy[dept] || new Map()).get(String(empId)) || new Map();
+  const rec = S.data.recs.find(r => r.month === month && r.dept === dept && r.empId === String(empId)) || {};
+  const name = rec.name || (S.data.recs.find(r => r.empId === String(empId)) || {}).name || empId;
+  MC.emp = Object.assign(MC.emp || {}, { cur: month });
+  const days = S.data.E.dayList(String(empId), merged, month);
+  const [y, m] = month.split('-').map(Number); const lead = new Date(y, m - 1, 1).getDay();
+  const otDays = days.filter(d => d.ot > 0);
+  const i = S.monthsAvail.indexOf(month);
+  const prev = i > 0 ? S.monthsAvail[i - 1] : '', next = i >= 0 && i < S.monthsAvail.length - 1 ? S.monthsAvail[i + 1] : '';
+  const cell = (d) => {
+    let cls = 'cd'; if (d.wk) cls += ' wk'; if (d.holiday) cls += ' hol'; if (d.absent) cls += ' ab'; if (d.lt) cls += ' lv'; if (d.ot > 0) cls += ' has-ot'; if (d.future) cls += ' fut';
+    const tags = [];
+    if (d.holiday) tags.push('<em class="t-h">วันหยุดบริษัท</em>');
+    if (d.lt) tags.push(`<em class="t-l">${LT[d.lt] || d.lt}${d.ld === 'half' ? ' ครึ่งวัน' : d.ld === 'hour' ? ` ${fmt(d.leaveHrs)} ชม.` : ''}</em>`);
+    if (d.absent) tags.push('<em class="t-a">ขาดงาน</em>');
+    if (d.ad > 0) tags.push(`<em class="t-a">ขาด ${fmt(d.ad)} วัน</em>`);
+    if (d.ah > 0) tags.push(`<em class="t-a">ขาด ${fmt(d.ah)} ชม.</em>`);
+    if (d.late) tags.push('<em class="t-a">มาสาย</em>');
+    if (d.shift === 'night' && (d.tin || d.tout)) tags.push('<em class="t-n">กะดึก</em>');
+    const time = (d.tin || d.tout) ? `<div class="tm">${esc(d.tin || '–')} – ${esc(d.tout || '–')}</div>` : '';
+    const tip = d.note ? ` title="${esc(d.note)}"` : '';
+    return `<div class="${cls}"${tip}><div class="dn">${d.d}</div>${time}${d.ot > 0 ? `<div class="otb">OT ${fmt(d.ot)} ชม.</div>` : ''}${tags.join('')}${d.note && !d.lt ? `<div class="nt">${esc(d.note)}</div>` : ''}</div>`;
+  };
+  $('#drawer').innerHTML = `<div class="ov" onclick="if(event.target===this)this.parentNode.innerHTML=''"><div class="sheet cal-sheet">
+    <div class="card-h"><div><h2>${esc(name)} <span class="muted">(${esc(empId)})</span></h2><div class="muted">${esc(dept)} · ${mLong(month)}</div></div>
+      <div class="actions"><button class="ghost" id="backDept">← รายชื่อแผนก</button><button class="ghost" onclick="document.getElementById('drawer').innerHTML=''">ปิด ✕</button></div></div>
+    <div class="cal-nav"><button class="ghost" id="pm" ${prev ? '' : 'disabled'}>‹ ${prev ? mShort(prev) : ''}</button><b>${mLong(month)}</b><button class="ghost" id="nm" ${next ? '' : 'disabled'}>${next ? mShort(next) : ''} ›</button></div>
+    <div class="cal-sum">
+      <div><span>OT รวม</span><b>${fmt(otDays.reduce((s, d) => s + d.ot, 0))} ชม.</b></div>
+      <div><span>วันที่ทำ OT</span><b>${otDays.length} วัน</b></div>
+      <div><span>มาสาย</span><b>${fmt(rec.late || 0, 0)} ครั้ง</b></div>
+      <div><span>ขาดงาน</span><b>${daysTxt(rec.absentDays || 0, rec.absentHours || 0)}</b></div>
+      <div><span>ลากิจ / ลาป่วย</span><b>${fmt(rec.personal || 0)} / ${fmt(rec.sick || 0)} วัน</b></div>
+    </div>
+    ${monthCard('emp', seriesOf(r => r.empId === String(empId) && r.dept === dept), 'กราฟรายเดือนของ ' + esc(name), esc(dept))}
+    <h3 class="ot-h">ปฏิทิน ${mLong(month)}</h3>
+    <div class="cal-wrap"><div class="cal">
+      ${WD.map((w, k) => `<div class="wh ${k === 0 || k === 6 ? 'we' : ''}">${w}</div>`).join('')}
+      ${'<div class="cd empty-c"></div>'.repeat(lead)}${days.map(cell).join('')}
+    </div></div>
+    <div class="cal-legend"><span><i style="background:#dcf2d9"></i>มี OT</span><span><i style="background:#e3f0fb"></i>ลา</span><span><i style="background:#fdecea"></i>ขาดงาน</span><span><i style="background:#f1f3f6"></i>เสาร์–อาทิตย์</span><span><i style="background:#fff4d6"></i>วันหยุดบริษัท</span></div>
+    ${otDays.length ? `<h3 class="ot-h">รายการวันที่ทำ OT</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>วันที่</th><th>เวลาเข้า</th><th>เวลาออก</th><th>กะ</th><th class="num">OT (ชม.)</th><th>หมายเหตุ</th></tr></thead><tbody>
+      ${otDays.map(d => `<tr><td>${WD[new Date(d.iso + 'T00:00:00').getDay()]} ${d.d} ${TMS[m - 1]}${d.holiday ? ' (วันหยุด)' : ''}</td><td>${esc(d.tin)}</td><td>${esc(d.tout)}</td><td>${d.shift === 'night' ? 'ดึก' : 'เช้า'}</td><td class="num strong">${fmt(d.ot)}</td><td class="note-c">${esc(d.note)}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="4">รวม ${otDays.length} วัน</td><td class="num">${fmt(otDays.reduce((s, d) => s + d.ot, 0))}</td><td></td></tr></tfoot></table></div>` : '<div class="empty">เดือนนี้ไม่มีวันที่ทำ OT</div>'}
+  </div></div>`;
+  bindMonthCard('emp', (mm) => openEmp(dept, empId, mm));
+  $('#backDept').onclick = () => openDept(dept);
+  if (prev) $('#pm').onclick = () => openEmp(dept, empId, prev);
+  if (next) $('#nm').onclick = () => openEmp(dept, empId, next);
+}
+
+function bindTips() {
+  const tip = $('#tip');
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mousemove', (e) => {
+      const [a, b] = el.dataset.tip.split('|'); tip.innerHTML = `<b>${esc(a)}</b><br>${esc(b || '')}`; tip.style.display = 'block';
+      tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 260) + 'px'; tip.style.top = (e.clientY + 14) + 'px';
+    });
+    el.addEventListener('mouseleave', () => tip.style.display = 'none');
+  });
+}
+
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#drawer')) $('#drawer').innerHTML = ''; });
+(function boot() { let code = ''; try { code = findCode(sessionStorage.getItem(MODE + 'OK')); } catch (e) {} if (code) { S.scope = ACCESS[code]; start(); } else showLogin(); })();
+
+</script></body></html>
