@@ -21,7 +21,8 @@ select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;backgroun
 .spin{width:34px;height:34px;border:3px solid #d6e2f1;border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 .top h1{font-size:24px;margin:2px 0}.eyebrow{font-size:12px;color:var(--accent);font-weight:700;letter-spacing:.3px}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rng{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .chip{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500;display:inline-flex;align-items:center;gap:7px}
 .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -415,21 +416,37 @@ async function start() {
 const blank = () => ({ n: 0, ot: 0, late: 0, absentDays: 0, absentHours: 0, personal: 0, sick: 0, vacation: 0, otPeople: 0 });
 function add(a, r) { a.n++; a.ot += r.ot; a.late += r.late; a.absentDays += r.absentDays; a.absentHours += r.absentHours; a.personal += r.personal; a.sick += r.sick; a.vacation += r.vacation; if (r.ot > 0) a.otPeople++; }
 const recsOf = (month, group) => S.data.recs.filter(r => r.month === month && (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (group === 'ALL' || groupOf[r.dept] === group));
+const rangeOf = (from, to) => S.monthsAvail.filter(m => m >= from && m <= to);
+const rangeLabel = (from, to) => from === to ? mLong(to) : (from.slice(0, 4) === to.slice(0, 4) ? `${TM[+from.slice(5) - 1]} – ${mLong(to)}` : `${mLong(from)} – ${mLong(to)}`);
+const rangeShort = (from, to) => from === to ? mShort(to) : `${mShort(from)}–${mShort(to)}`;
+// รวมยอดหลายเดือนเป็น 1 แถวต่อคน
+function aggRange(from, to, filter) {
+  const ms = new Set(rangeOf(from, to)); const map = new Map();
+  S.data.recs.forEach(r => { if (!ms.has(r.month) || !filter(r)) return; const k = r.dept + '|' + r.empId;
+    let x = map.get(k); if (!x) { x = { month: to, dept: r.dept, empId: r.empId, name: r.name, ot: 0, otDays: 0, late: 0, absentDays: 0, absentHours: 0, personal: 0, sick: 0, vacation: 0 }; map.set(k, x); }
+    ['ot', 'otDays', 'late', 'absentDays', 'absentHours', 'personal', 'sick', 'vacation'].forEach(f => x[f] += r[f] || 0); });
+  return [...map.values()];
+}
+const inGroup = (g) => (r) => (!S.scope || S.scope.includes(r.dept)) && (!S.dept || r.dept === S.dept) && (g === 'ALL' || groupOf[r.dept] === g);
 function total(recs) { const t = blank(); recs.forEach(r => add(t, r)); return t; }
 function byDept(recs) { const m = {}; recs.forEach(r => add(m[r.dept] || (m[r.dept] = blank()), r)); return m; }
 
 // ---------- render ----------
 function render() {
-  const month = S.month, recs = recsOf(month, S.group), T = total(recs);
-  const idx = S.monthsAvail.indexOf(month), prev = idx > 0 ? S.monthsAvail[idx - 1] : '';
-  const P = prev ? total(recsOf(prev, S.group)) : null;
+  if (!S.from || S.from > S.month) S.from = S.month;
+  const month = S.month, from = S.from, single = from === month;
+  const span = rangeOf(from, month), recs = aggRange(from, month, inGroup(S.group)), T = total(recs);
+  const iTo = S.monthsAvail.indexOf(month), iFrom = S.monthsAvail.indexOf(from), len = iTo - iFrom + 1;
+  const pFrom = iFrom - len >= 0 ? S.monthsAvail[iFrom - len] : '', pTo = iFrom - 1 >= 0 ? S.monthsAvail[iFrom - 1] : '';
+  const P = single && pFrom && pTo ? total(aggRange(pFrom, pTo, inGroup(S.group))) : null; // เทียบเดือนก่อนเฉพาะเมื่อเลือกเดือนเดียว
   const isCurrent = month === S.data.nowPrefix;
   const asOf = new Date(); asOf.setDate(asOf.getDate() - 1);
-  const sub = isCurrent ? `ข้อมูลเดือนปัจจุบัน ถึงวันที่ ${asOf.getDate()} ${TMS[asOf.getMonth()]} ${asOf.getFullYear() + 543} (ยังไม่ครบเดือน)` : `ช่วงข้อมูล 1–${new Date(+month.slice(0, 4), +month.slice(5), 0).getDate()} ${TMS[+month.slice(5) - 1]} ${+month.slice(0, 4) + 543}`;
+  const endTxt = isCurrent ? `${asOf.getDate()} ${TMS[asOf.getMonth()]} ${asOf.getFullYear() + 543}` : `${new Date(+month.slice(0, 4), +month.slice(5), 0).getDate()} ${TMS[+month.slice(5) - 1]} ${+month.slice(0, 4) + 543}`;
+  const sub = `ช่วงข้อมูล 1 ${TMS[+from.slice(5) - 1]} ${+from.slice(0, 4) + 543} – ${endTxt}${single ? '' : ` · รวม ${len} เดือน`}${isCurrent ? ' (เดือนปัจจุบันยังไม่ครบเดือน)' : ''}`;
   const delta = (cur, old) => {
     if (!P || !old) return '';
     const pct = (cur - old) / old * 100; const up = pct >= 0;
-    return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${fmt(Math.abs(pct), 0)}% จาก ${mShort(prev)}</span>`;
+    return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${fmt(Math.abs(pct), 0)}% จาก ${rangeShort(pFrom, pTo)}</span>`;
   };
   const gLabel = S.dept ? S.dept : S.scope ? (S.scope.length > 1 ? 'ภาพรวม ' + S.scope.length + ' แผนก' : S.scope[0]) : (S.group === 'ALL' ? 'ทั้งบริษัท' : gInfo(S.group).label);
 
@@ -437,11 +454,12 @@ function render() {
   <header class="top">
     <div>
       <div class="eyebrow">Poomjai Group · ${S.scope ? 'รายงานแผนก ' + esc(S.scope.join(', ')) : 'รายงานสำหรับผู้บริหาร'}</div>
-      <h1>สรุป OT และ ขาด–ลา–มาสาย · ${mLong(month)}</h1>
+      <h1>สรุป OT และ ขาด–ลา–มาสาย · ${rangeLabel(from, month)}</h1>
       <div class="muted">${sub}</div>
     </div>
     <div class="actions no-print">
-      <select id="month">${S.monthsAvail.slice().reverse().map(m => `<option value="${m}" ${m === month ? 'selected' : ''}>${mLong(m)}</option>`).join('')}</select>
+      <label class="rng">ตั้งแต่ <select id="from">${S.monthsAvail.slice().reverse().map(m => `<option value="${m}" ${m === from ? 'selected' : ''}>${mLong(m)}</option>`).join('')}</select></label>
+      <label class="rng">ถึง <select id="month">${S.monthsAvail.slice().reverse().map(m => `<option value="${m}" ${m === month ? 'selected' : ''}>${mLong(m)}</option>`).join('')}</select></label>
       <button id="refresh" class="ghost" title="ดึงข้อมูลล่าสุด">↻ อัปเดต</button>
       <button id="print" class="ghost">🖨 พิมพ์ / PDF</button>
       <button id="logout" class="ghost">ออก</button>
@@ -454,7 +472,7 @@ function render() {
   <section class="kpis">
     ${kpi('พนักงาน', fmt(T.n, 0), 'คน', `${gLabel}`)}
     ${kpi('OT รวม', fmt(T.ot), 'ชั่วโมง', delta(T.ot, P && P.ot), true)}
-    ${kpi('OT เฉลี่ย', fmt(T.n ? T.ot / T.n : 0), 'ชม./คน', `ทำโอที ${fmt(T.otPeople, 0)} คน`)}
+    ${kpi('OT เฉลี่ย', fmt(T.n ? T.ot / T.n : 0), 'ชม./คน', single ? `ทำโอที ${fmt(T.otPeople, 0)} คน` : `รวม ${len} เดือน · ≈ ${fmt(T.n ? T.ot / T.n / len : 0)} ชม./คน/เดือน`)}
     ${kpi('มาสาย', fmt(T.late, 0), 'ครั้ง', delta(T.late, P && P.late))}
     ${kpi('ขาดงาน', fmt(T.absentDays), 'วัน', T.absentHours > 0 ? `+ ${fmt(T.absentHours)} ชม.` : '')}
     ${kpi('ลากิจ', fmt(T.personal), 'วัน', '')}
@@ -466,7 +484,7 @@ function render() {
   ${monthCard('main', seriesOf(inView), 'กราฟสรุปรายเดือน', gLabel)}
 
   <section class="card">
-    <div class="card-h"><h2>${S.scope ? 'OT รายคน (ชั่วโมง)' : 'OT รายแผนก (ชั่วโมง)'}</h2><span class="muted">${gLabel} · ${mShort(month)}</span></div>
+    <div class="card-h"><h2>${S.scope ? 'OT รายคน (ชั่วโมง)' : 'OT รายแผนก (ชั่วโมง)'}</h2><span class="muted">${gLabel} · ${rangeShort(from, month)}</span></div>
     ${S.scope ? empBars(recs) : deptBars(recs)}
   </section>
 
@@ -477,7 +495,7 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="card-h"><h2>อันดับพนักงาน (Top 5 ต่อหมวด)</h2><span class="muted">${gLabel} · ${mShort(month)}</span></div>
+    <div class="card-h"><h2>อันดับพนักงาน (Top 5 ต่อหมวด)</h2><span class="muted">${gLabel} · ${rangeShort(from, month)}</span></div>
     <div class="tops">
       ${top5(recs, 'OT สูงสุด', r => r.ot, r => `${fmt(r.ot)} ชม.`)}
       ${top5(recs, 'มาสายสูงสุด', r => r.late, r => `${fmt(r.late, 0)} ครั้ง`)}
@@ -491,7 +509,8 @@ function render() {
   <div id="tip" class="tip"></div>
   <div id="drawer"></div>`;
 
-  $('#month').onchange = (e) => { S.month = e.target.value; render(); };
+  $('#month').onchange = (e) => { S.month = e.target.value; if (S.from > S.month) S.from = S.month; render(); };
+  $('#from').onchange = (e) => { S.from = e.target.value; if (S.from > S.month) S.month = S.from; render(); };
   $('#refresh').onclick = () => start();
   $('#print').onclick = () => window.print();
   $('#logout').onclick = () => { try { sessionStorage.removeItem('execOK'); } catch (e) {} showLogin(); };
@@ -500,7 +519,7 @@ function render() {
   document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => openDept(el.dataset.dept));
   if (S.scope && S.scope.length > 1 && !S.dept) document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => { S.dept = el.dataset.dept; render(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { S.sortKey = el.dataset.sort; render(); });
-  bindMonthCard('main', (m) => { S.month = m; render(); window.scrollTo(0, 0); });
+  bindMonthCard('main', (m) => { S.month = m; S.from = m; render(); window.scrollTo(0, 0); });
   bindTips(); bindEmp();
 }
 
@@ -510,7 +529,7 @@ function kpi(label, value, unit, foot, hero) {
 
 function factoryCards(month) {
   return `<section class="factories">${GROUPS.map(g => {
-    const recs = recsOf(month, g.key), t = total(recs), nd = new Set(recs.map(r => r.dept)).size;
+    const recs = aggRange(S.from, month, inGroup(g.key)), t = total(recs), nd = new Set(recs.map(r => r.dept)).size;
     return `<button class="fcard" data-gopen="${g.key}" onclick="S.group='${g.key}';render()">
       <div class="fh"><i style="background:${g.color}"></i>${g.label}</div>
       <div class="fsub">${fmt(t.n, 0)} คน · ${nd} แผนก</div>
@@ -557,19 +576,20 @@ function monthCardInner(key) {
   const slot = (W - L - R) / sr.length, bw = Math.min(46, slot * 0.62);
   const y = (v) => Tp + (H - Tp - B) * (1 - v / max);
   let g = ''; for (let i = 0; i <= 4; i++) { const v = stepV * i; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${L - 6}" y="${y(v) + 4}" class="ax" text-anchor="end">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>`; }
-  const sel = sr.findIndex(s => s.m === (key === 'emp' ? MC.emp.cur : S.month));
+  const inSel = (m) => key === 'emp' ? m === MC.emp.cur : (m >= S.from && m <= S.month);
+  const sel = -1;
   const bars = sr.map((s, i) => { const v = s[mt.k], cx = L + slot * i + slot / 2, top = y(v), cur = s.m === S.data.nowPrefix;
     return `<g class="mb" data-m="${s.m}" data-tip="${mLong(s.m)}${cur ? ' (ยังไม่ครบเดือน)' : ''}|${mt.l} ${fmt(v, mt.dp === 0 ? 0 : 1)} ${mt.u}${mt.k === 'ot' && s.n ? ` · เฉลี่ย ${fmt(s.ot / s.n)} ชม./คน` : ''}">
       <rect x="${L + slot * i}" y="${Tp}" width="${slot}" height="${H - Tp - B}" fill="transparent"/>
-      ${v > 0 ? (y(0) - top >= 5 ? `<path d="M${cx - bw / 2},${y(0)} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${y(0)} Z" fill="${mt.c}" opacity="${i === sel ? 1 : cur ? 0.45 : 0.78}"/>` : `<rect x="${cx - bw / 2}" y="${y(0) - 2}" width="${bw}" height="2" fill="${mt.c}"/>`) : ''}
-      ${v > 0 ? `<text x="${cx}" y="${top - 5}" text-anchor="middle" class="bv${i === sel ? ' sel' : ''}">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>` : ''}
-      <text x="${cx}" y="${H - 10}" text-anchor="middle" class="ax${i === sel ? ' axs' : ''}">${mShort(s.m)}${cur ? '*' : ''}</text></g>`; }).join('');
-  const row = (m) => `<tr><td>${m.l} (${m.u})</td>${sr.map(s => `<td class="num${s.m === (key === 'emp' ? MC.emp.cur : S.month) ? ' selc' : ''}">${s[m.k] ? fmt(s[m.k], m.dp === 0 ? 0 : 1) : '–'}</td>`).join('')}<td class="num strong">${fmt(sr.reduce((t, s) => t + s[m.k], 0), m.dp === 0 ? 0 : 1)}</td></tr>`;
-  return `<div class="card-h"><div><h2>${st.title}</h2><span class="muted">${st.sub} · ทุกเดือนที่มีข้อมูล · คลิกแท่งเพื่อเปิดเดือนนั้น</span></div>
+      ${v > 0 ? (y(0) - top >= 5 ? `<path d="M${cx - bw / 2},${y(0)} V${top + 4} q0,-4 4,-4 h${bw - 8} q4,0 4,4 V${y(0)} Z" fill="${mt.c}" opacity="${inSel(s.m) ? 1 : cur ? 0.35 : 0.55}"/>` : `<rect x="${cx - bw / 2}" y="${y(0) - 2}" width="${bw}" height="2" fill="${mt.c}"/>`) : ''}
+      ${v > 0 ? `<text x="${cx}" y="${top - 5}" text-anchor="middle" class="bv${inSel(s.m) ? ' sel' : ''}">${fmt(v, mt.dp === 0 ? 0 : 1)}</text>` : ''}
+      <text x="${cx}" y="${H - 10}" text-anchor="middle" class="ax${inSel(s.m) ? ' axs' : ''}">${mShort(s.m)}${cur ? '*' : ''}</text></g>`; }).join('');
+  const row = (m) => `<tr><td>${m.l} (${m.u})</td>${sr.map(s => `<td class="num${inSel(s.m) ? ' selc' : ''}">${s[m.k] ? fmt(s[m.k], m.dp === 0 ? 0 : 1) : '–'}</td>`).join('')}<td class="num strong">${fmt(sr.filter(s => key !== 'main' || inSel(s.m)).reduce((t, s) => t + s[m.k], 0), m.dp === 0 ? 0 : 1)}</td></tr>`;
+  return `<div class="card-h"><div><h2>${st.title}</h2><span class="muted">${st.sub} · ทุกเดือนที่มีข้อมูล · ${key === 'main' ? 'แท่งเข้ม = ช่วงที่เลือก · ' : ''}คลิกแท่งเพื่อเปิดเดือนนั้น</span></div>
     <div class="mtabs no-print">${METRICS.map(m => `<button class="mtab ${m.k === st.metric ? 'on' : ''}" data-mk="${m.k}">${m.l}</button>`).join('')}</div></div>
     <svg viewBox="0 0 ${W} ${H}" class="trend mchart">${g}<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="#c9d0d8"/>${bars}</svg>
     ${sr.some(s => s.m === S.data.nowPrefix) ? '<div class="muted" style="font-size:12px">* เดือนปัจจุบัน ยังไม่ครบเดือน · OT มีข้อมูลตั้งแต่ ส.ค.69</div>' : ''}
-    <div class="tbl-wrap"><table class="tbl mtbl"><thead><tr><th></th>${sr.map(s => `<th class="num">${mShort(s.m)}</th>`).join('')}<th class="num">รวม</th></tr></thead><tbody>${METRICS.map(row).join('')}</tbody></table></div>`;
+    <div class="tbl-wrap"><table class="tbl mtbl"><thead><tr><th></th>${sr.map(s => `<th class="num">${mShort(s.m)}</th>`).join('')}<th class="num">${key === 'main' ? 'รวมช่วงที่เลือก' : 'รวม'}</th></tr></thead><tbody>${METRICS.map(row).join('')}</tbody></table></div>`;
 }
 function bindMonthCard(key, onMonth) {
   const box = document.getElementById('mc-' + key); if (!box) return;
@@ -635,10 +655,10 @@ function empBars(recs) {
 }
 
 function openDept(dept) {
-  const recs = S.data.recs.filter(r => r.month === S.month && r.dept === dept).sort((a, b) => b.ot - a.ot);
+  const recs = aggRange(S.from || S.month, S.month, r => r.dept === dept).sort((a, b) => b.ot - a.ot);
   const t = total(recs);
   $('#drawer').innerHTML = `<div class="ov" onclick="if(event.target===this)this.parentNode.innerHTML=''"><div class="sheet">
-    <div class="card-h"><div><h2>${esc(dept)} · ${mLong(S.month)}</h2><div class="muted">${fmt(t.n, 0)} คน · OT ${fmt(t.ot)} ชม. · มาสาย ${fmt(t.late, 0)} ครั้ง · ขาด ${daysTxt(t.absentDays, t.absentHours)} · ลากิจ ${fmt(t.personal)} วัน · ลาป่วย ${fmt(t.sick)} วัน</div></div>
+    <div class="card-h"><div><h2>${esc(dept)} · ${rangeLabel(S.from || S.month, S.month)}</h2><div class="muted">${fmt(t.n, 0)} คน · OT ${fmt(t.ot)} ชม. · มาสาย ${fmt(t.late, 0)} ครั้ง · ขาด ${daysTxt(t.absentDays, t.absentHours)} · ลากิจ ${fmt(t.personal)} วัน · ลาป่วย ${fmt(t.sick)} วัน</div></div>
     <button class="ghost" onclick="document.getElementById('drawer').innerHTML=''">ปิด ✕</button></div>
     ${empTable(recs)}
   </div></div>`;
