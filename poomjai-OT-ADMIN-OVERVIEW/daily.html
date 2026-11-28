@@ -105,7 +105,7 @@ footer{margin-top:6px;font-size:12px}
 .vtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 input[type=date]{padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px}
 .warnbox{background:#fff4d6;border:1px solid #f2c94c;color:#7a5200;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px}
-.dcats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.dcats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .dcat{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:12px 14px;color:var(--ink);text-decoration:none}
 .dcat:hover{box-shadow:0 2px 10px rgba(20,60,120,.08)}
 .dn2{width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
@@ -114,7 +114,7 @@ input[type=date]{padding:7px 10px;border:1px solid var(--line);border-radius:8px
 .tbl em{font-style:normal;font-size:11px;border-radius:5px;padding:1px 5px}
 .backlog{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}.backlog summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}.backlog summary b{color:var(--warn)}
 .okSum{cursor:pointer;font-size:14.5px}
-@media (max-width:1000px){.kpis{grid-template-columns:repeat(4,1fr)}.factories{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tops{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:1000px){.dcats{grid-template-columns:repeat(3,minmax(0,1fr))}.kpis{grid-template-columns:repeat(4,1fr)}.factories{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tops{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.dcats{grid-template-columns:repeat(2,minmax(0,1fr))}.cal-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.factories,.tops{grid-template-columns:1fr}.top h1{font-size:19px}.bar-row{grid-template-columns:110px 1fr 54px}}
 @media print{body{background:#fff}.no-print,#drawer,.tip{display:none!important}#app{padding:0;max-width:none}.card,.kpi,.fcard{break-inside:avoid;box-shadow:none}.kpis{grid-template-columns:repeat(7,1fr)}}
 </style></head>
@@ -297,6 +297,8 @@ const ENGINE = (() => {
 // D: { holidays, startDates, hrAtt, depts:[{prefix,label,group,rows,history,monthlyLeave,roster}] }
 // พนักงานที่ได้รับยกเว้นการสแกนนิ้ว: นับเป็นพนักงานทุกเดือน ไม่นับขาดงานจากการไม่สแกน แต่ยังนับลา/ขาดจากหมายเหตุ
 const SCAN_EXEMPT = { '450822': 'SALE & MARKETTING' };
+// ไม่นับในรายงานเลย (ทุกเดือน)
+const REPORT_EXCLUDE = ['450233']; // จรัส เนาวโคอักษร (INJECTION)
 function buildAll(D, fromPrefix) {
   const rosterHire = {};
   D.depts.forEach(d => (d.roster || []).forEach(r => { if (r && r.empId && r.hireDate) rosterHire[String(r.empId).trim()] = r.hireDate; }));
@@ -331,6 +333,7 @@ function buildAll(D, fromPrefix) {
       ml.forEach(r => { if (r.month === label) ids.add(String(r.empId).trim()); });
       const importedIds = new Set(ml.filter(r => r.month === label).map(r => String(r.empId).trim()));
       ids.forEach(id => {
+        if (REPORT_EXCLUDE.includes(id)) return;
         // คนที่อยู่ในรายชื่อแผนกอื่น ไม่นับในแผนกนี้
         if (!rosterIds.has(id) && rosterOf[id] && !rosterOf[id].has(d.label)) return;
         // ตัดคนลาออก: ตั้งแต่เดือนที่มีข้อมูลสแกน ต้องมีสแกน/การลาในเดือนนั้น หรือมีสรุปที่นำเข้า
@@ -595,7 +598,7 @@ function dailyReport(iso) {
   const req = {};
   S.requests.filter(q => q.date === iso && q.status !== 'cancelled').forEach(q => {
     const p = req[q.empId]; if (!p || String(q.requestedAt || '') > String(p.requestedAt || '')) req[q.empId] = q; });
-  const out = { noReq: [], rejected: [], noShow: [], pending: [], okDone: [] };
+  const out = { noReq: [], rejected: [], noShow: [], pending: [], cancelled: [], okDone: [] };
   people.forEach(r => {
     const d = dayInfo(r.dept, r.empId, iso); const q = req[r.empId];
     const base = { dept: r.dept, empId: r.empId, name: r.name, tin: d.tin || '', tout: d.tout || '', ot: d.ot || 0, shift: d.shift, note: d.note || '', lt: d.lt, q };
@@ -609,6 +612,17 @@ function dailyReport(iso) {
   Object.values(req).forEach(q => { if (deptOf[q.empId]) return; if (!inV({ dept: q.reqDept })) return;
     const base = { dept: q.reqDept, empId: q.empId, name: q.name || q.empId, tin: '', tout: '', ot: 0, note: '', q };
     if (q.status === 'rejected') out.rejected.push(base); else if (q.status === 'pending') out.pending.push(base); else if (q.status === 'approved') out.noShow.push(base); });
+  // 5. คำขอที่ถูกยกเลิก (ของวันนั้น) — ยกเลิกล่าสุดต่อคน และไม่มีคำขอใหม่มาแทน
+  const canc = {};
+  S.requests.filter(q => q.date === iso && q.status === 'cancelled').forEach(q => { const p = canc[q.empId]; if (!p || String(q.cancelledAt || '') > String(p.cancelledAt || '')) canc[q.empId] = q; });
+  Object.values(canc).forEach(q => {
+    if (req[q.empId]) return; // ขอใหม่แล้ว
+    const dept = deptOf[q.empId] || q.reqDept; if (!inV({ dept })) return;
+    const d = deptOf[q.empId] ? dayInfo(dept, q.empId, iso) : {};
+    const ct = q.cancelledAt ? new Date(q.cancelledAt) : null;
+    const cutoff = new Date(iso + 'T18:00:00');
+    out.cancelled.push({ dept, empId: q.empId, name: q.name || q.empId, tin: d.tin || '', tout: d.tout || '', ot: d.ot || 0, note: d.note || '', q, before18: ct ? ct < cutoff : null });
+  });
   Object.values(out).forEach(l => l.sort((a, b) => a.dept.localeCompare(b.dept) || b.ot - a.ot));
   return out;
 }
@@ -635,7 +649,8 @@ function renderDay() {
     { k: 'noReq', t: 'ทำโอที แต่ไม่ได้ขอโอที', c: '#c62828', d: 'มีเวลาสแกนที่ได้ OT แต่ไม่มีคำขอโอทีของวันนี้ในระบบ' },
     { k: 'rejected', t: 'ขอโอทีแล้ว หัวหน้าไม่อนุมัติ', c: '#7b61c9', d: 'คำขอถูกหัวหน้างานปฏิเสธ' },
     { k: 'noShow', t: 'ขอโอทีแล้ว (อนุมัติ) แต่ไม่ได้ทำ', c: '#e07b00', d: 'อนุมัติแล้ว แต่เวลาสแกนไม่ได้ OT' },
-    { k: 'pending', t: 'ขอโอทีแล้ว หัวหน้ายังไม่ตอบกลับ', c: '#1b64be', d: 'คำขอยังค้างสถานะ "รออนุมัติ" — หัวหน้างานยังไม่ได้ดำเนินการ' }
+    { k: 'pending', t: 'ขอโอทีแล้ว หัวหน้ายังไม่ตอบกลับ', c: '#1b64be', d: 'คำขอยังค้างสถานะ "รออนุมัติ" — หัวหน้างานยังไม่ได้ดำเนินการ' },
+    { k: 'cancelled', t: 'ยกเลิกคำขอโอที', c: '#6b6b6b', d: 'คำขอที่ถูกยกเลิก (พนักงานยกเลิกได้ก่อน 18:00 ของวันนั้น หรือหัวหน้างานยกเลิก) — ถ้ายังมีเวลาสแกนได้ OT จะแสดงชั่วโมงไว้ให้ตรวจ' }
   ];
   const time = (r) => (r.tin || r.tout) ? `${esc(r.tin || '–')} – ${esc(r.tout || '–')}` : '<span class="muted">ไม่มีเวลาสแกน</span>';
   const LTX = { sick: 'ลาป่วย', sick_cert: 'ลาป่วย(ใบแพทย์)', personal: 'ลากิจ', vacation: 'พักร้อน' };
@@ -643,12 +658,14 @@ function renderDay() {
     const head = { noReq: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>หมายเหตุ</th>',
       rejected: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ผู้ไม่อนุมัติ / เวลา</th><th>งาน/เหตุผล</th>',
       noShow: '<th>เวลาเข้า–ออก</th><th>ขอเมื่อ</th><th>ผู้อนุมัติ / เวลา</th><th>งาน</th><th>หมายเหตุวันนั้น</th>',
-      pending: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>รอมาแล้ว</th><th>งาน</th>' }[c.k];
+      pending: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>รอมาแล้ว</th><th>งาน</th>',
+      cancelled: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ยกเลิกโดย / เวลา</th><th>ก่อน 18:00</th><th>งาน</th>' }[c.k];
     const row = (r) => { const q = r.q || {}; const wait = q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 3600000) : 0;
       const cells = { noReq: `<td>${time(r)}</td><td class="num strong">${fmt(r.ot)}</td><td class="note-c">${esc(r.note)}</td>`,
         rejected: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td>`,
         noShow: `<td>${time(r)}${r.lt ? ` <em class="t-l">${LTX[r.lt] || r.lt}</em>` : ''}</td><td>${tStamp(q.requestedAt)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td><td class="note-c">${esc(r.note)}${q.noShowAck ? ' <em class="t-h">หัวหน้ารับทราบแล้ว</em>' : ''}</td>`,
-        pending: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${wait >= 48 ? Math.floor(wait / 24) + ' วัน' : wait + ' ชม.'}</td><td class="note-c">${esc(q.note || '')}</td>` }[c.k];
+        pending: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${wait >= 48 ? Math.floor(wait / 24) + ' วัน' : wait + ' ชม.'}</td><td class="note-c">${esc(q.note || '')}</td>`,
+        cancelled: `<td>${time(r)}</td><td class="num ${r.ot ? 'warn strong' : ''}">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td><b>${esc(q.cancelledBy || '–')}</b>${q.cancelledByRole ? ` <small class="muted">(${q.cancelledByRole === 'supervisor' ? 'หัวหน้างาน' : 'พนักงาน'})</small>` : ''}<br><small class="muted">${tStamp(q.cancelledAt)}${q.cancelledFromStatus ? ' · ก่อนยกเลิก: ' + (q.cancelledFromStatus === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ') : ''}</small></td><td>${r.before18 == null ? '–' : r.before18 ? '<em class="t-l">ก่อน 18:00</em>' : '<em class="t-a">หลัง 18:00</em>'}</td><td class="note-c">${esc(q.note || '')}</td>` }[c.k];
       return `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td>${cells}</tr>`; };
     return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th>${head}</tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>`; };
   // สรุปรายแผนก
