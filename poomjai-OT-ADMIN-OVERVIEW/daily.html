@@ -114,6 +114,11 @@ input[type=date]{padding:7px 10px;border:1px solid var(--line);border-radius:8px
 .tbl em{font-style:normal;font-size:11px;border-radius:5px;padding:1px 5px}
 .backlog{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}.backlog summary{cursor:pointer;font-size:13.5px;color:var(--ink2)}.backlog summary b{color:var(--warn)}
 .okSum{cursor:pointer;font-size:14.5px}
+.pbar{display:inline-block;width:46px;height:6px;background:#eef1f5;border-radius:3px;margin-right:6px;vertical-align:middle;overflow:hidden}.pbar i{display:block;height:100%;background:#257de0;border-radius:3px}
+.jsearch{padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px;min-width:220px}
+.jsum{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin-bottom:8px}.jsum b{color:var(--ink)}.jsum .warn b{color:var(--warn)}
+.jcode{font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.t-sat{background:#e6f4d7;color:#3d6b12}.t-sun{background:#fde2ef;color:#a3215f}.t-adv{background:#e3f0fb;color:#0f4a96}
 @media (max-width:1000px){.dcats{grid-template-columns:repeat(3,minmax(0,1fr))}.kpis{grid-template-columns:repeat(4,1fr)}.factories{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.tops{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.dcats{grid-template-columns:repeat(2,minmax(0,1fr))}.cal-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.factories,.tops{grid-template-columns:1fr}.top h1{font-size:19px}.bar-row{grid-template-columns:110px 1fr 54px}}
 @media print{body{background:#fff}.no-print,#drawer,.tip{display:none!important}#app{padding:0;max-width:none}.card,.kpi,.fcard{break-inside:avoid;box-shadow:none}.kpis{grid-template-columns:repeat(7,1fr)}}
@@ -283,7 +288,7 @@ const ENGINE = (() => {
             else if (shift !== 'night') { const lr = lateRule(tin, note); late = lr.late; ah = lr.ah; ad = lr.ad; }
           }
         }
-        out.push({ iso, d, tin, tout, ot, shift, lt, ld, leaveHrs: lt ? leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd, reason: src.leaveReason || src.reason }) : 0,
+        out.push({ iso, d, tin, tout, ot, shift, lt, ld, reason: (r.reason || '').trim(), hrNote: (r.hrNote || '').trim(), leaveHrs: lt ? leaveHours({ leaveType: lt, leaveDuration: src.leaveDuration, leaveStart: src.leaveStart, leaveEnd: src.leaveEnd, reason: src.leaveReason || src.reason }) : 0,
           wk, holiday, note, late, ah, ad, absent, future: iso >= todayIso });
       }
       return out;
@@ -445,6 +450,7 @@ async function start() {
     const D = await loadData();
     await new Promise(r => setTimeout(r, 30));
     S.data = buildAll(D, '2025-12');
+    S.holidays = new Set(D.holidays || []);
     // คำขอโอทีทุกแผนก + วันล่าสุดที่มีข้อมูลสแกน
     S.requests = []; D.depts.forEach(d => (d.requests || []).forEach(q => { if (q && q.empId && q.date) S.requests.push({ ...q, empId: String(q.empId).trim(), reqDept: d.label }); }));
     let last = ''; Object.values(S.data.mergedBy).forEach(mg => mg.forEach(bd => bd.forEach((v, k) => { if ((v.timeIn || v.timeOut) && k > last && k < S.data.todayIso) last = k; })));
@@ -521,7 +527,7 @@ function render() {
   <section class="kpis">
     ${kpi('พนักงาน', fmt(T.n, 0), 'คน', `${gLabel}`)}
     ${kpi('OT รวม', fmt(T.ot), 'ชั่วโมง', delta(T.ot, P && P.ot), true)}
-    ${kpi('OT เฉลี่ย', fmt(T.n ? T.ot / T.n : 0), 'ชม./คน', single ? `ทำโอที ${fmt(T.otPeople, 0)} คน` : `รวม ${len} เดือน · ≈ ${fmt(T.n ? T.ot / T.n / len : 0)} ชม./คน/เดือน`)}
+    ${kpi('OT เฉลี่ย', fmt(T.n ? T.ot / T.n : 0), 'ชม./คน', `${single ? `ทำโอที ${fmt(T.otPeople, 0)} คน` : `≈ ${fmt(T.n ? T.ot / T.n / len : 0)} ชม./คน/เดือน`} · % OT ${fmt(T.n && workDaysInView() ? T.ot / (T.n * workDaysInView() * 8) * 100 : 0)}%`)}
     ${kpi('มาสาย', fmt(T.late, 0), 'ครั้ง', delta(T.late, P && P.late))}
     ${kpi('ขาดงาน', fmt(T.absentDays), 'วัน', T.absentHours > 0 ? `+ ${fmt(T.absentHours)} ชม.` : '')}
     ${kpi('ลากิจ', fmt(T.personal), 'วัน', '')}
@@ -542,6 +548,8 @@ function render() {
     ${S.scope ? `<div class="card-h"><h2>รายชื่อพนักงาน</h2><span class="muted no-print">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวัน</span></div>${empTable(recs)}`
       : `<div class="card-h"><h2>รายละเอียดทุกแผนก</h2><span class="muted no-print">คลิกที่แผนกเพื่อดูรายชื่อพนักงาน</span></div>${deptTable(recs)}`}
   </section>
+
+  ${jobCard(recs)}
 
   <section class="card">
     <div class="card-h"><h2>อันดับพนักงาน (Top 5 ต่อหมวด)</h2><span class="muted">${gLabel} · ${rangeShort(from, month)}</span></div>
@@ -569,6 +577,8 @@ function render() {
   if (S.scope && S.scope.length > 1 && !S.dept) document.querySelectorAll('[data-dept]').forEach(el => el.onclick = () => { S.dept = el.dataset.dept; render(); window.scrollTo(0, 0); });
   document.querySelectorAll('[data-sort]').forEach(el => el.onclick = () => { S.sortKey = el.dataset.sort; render(); });
   bindMonthCard('main', (m) => { S.month = m; S.from = m; render(); window.scrollTo(0, 0); });
+  document.querySelectorAll('[data-job]').forEach(el => el.onclick = () => openJob(el.dataset.job));
+  const js = document.getElementById('jobSearch'); if (js) js.oninput = (ev) => { S.jobQ = ev.target.value; const box = document.getElementById('jobBody'); box.innerHTML = jobRows(S._jobs); box.querySelectorAll('[data-job]').forEach(el => el.onclick = () => openJob(el.dataset.job)); };
   bindTips(); bindEmp();
 }
 
@@ -587,6 +597,12 @@ function dayInfo(dept, id, iso) {
 const thDate = (iso) => { const d = new Date(iso + 'T00:00:00'); return `${WD[d.getDay()]} ${d.getDate()} ${TMS[d.getMonth()]} ${d.getFullYear() + 543}`; };
 const decided = (q) => { if (!q.decidedBy && !q.decidedAt) return '–'; const hrs = q.decidedAt && q.requestedAt ? (new Date(q.decidedAt) - new Date(q.requestedAt)) / 3600000 : null;
   return `<b>${esc(q.decidedBy || '–')}</b><br><small class="muted">${tStamp(q.decidedAt)}${hrs != null && hrs >= 0 ? ` · หลังขอ ${hrs < 1 ? Math.round(hrs * 60) + ' นาที' : hrs < 48 ? fmt(hrs) + ' ชม.' : Math.floor(hrs / 24) + ' วัน'}` : ''}</small>`; };
+const workDate = (iso) => { const d = new Date(iso + 'T00:00:00'); const wd = d.getDay(); const hol = S.holidays && S.holidays.has(iso);
+  const tag = hol ? '<em class="t-h">วันหยุดบริษัท</em>' : wd === 6 ? '<em class="t-sat">วันเสาร์</em>' : wd === 0 ? '<em class="t-sun">วันอาทิตย์</em>' : '';
+  return `<b>${WD[wd]} ${d.getDate()} ${TMS[d.getMonth()]}</b>${tag ? ' ' + tag : ''}`; };
+const advTag = (q) => { if (!q || !q.requestedAt || !q.date) return ''; const r = new Date(q.requestedAt); const rIso = `${r.getFullYear()}-${String(r.getMonth() + 1).padStart(2, '0')}-${String(r.getDate()).padStart(2, '0')}`;
+  const days = Math.round((new Date(q.date + 'T00:00:00') - new Date(rIso + 'T00:00:00')) / 86400000);
+  return days > 0 ? `<br><em class="t-adv">ขอล่วงหน้า ${days} วัน</em>` : days < 0 ? `<br><em class="t-a">ขอย้อนหลัง ${-days} วัน</em>` : ''; };
 const tStamp = (s) => { if (!s) return '–'; const d = new Date(s); return `${d.getDate()} ${TMS[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 // แผนกที่ไม่ต้องขออนุมัติโอที — ไม่แสดงในรายงานประจำวัน
 const NO_APPROVAL_DEPTS = ['PERSONAL'];
@@ -636,7 +652,7 @@ function backlog() {
   const byDept = {}; L.forEach(q => byDept[q.reqDept] = (byDept[q.reqDept] || 0) + 1);
   return `<details class="backlog"><summary>คำขอที่ค้าง "รออนุมัติ" สะสมทุกวัน: <b>${L.length} รายการ</b> — ${Object.entries(byDept).sort((a, b) => b[1] - a[1]).map(([d, n]) => `${esc(d)} ${n}`).join(' · ')}</summary>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>ชื่อ</th><th>วันที่ขอโอที</th><th>ขอเมื่อ</th><th>ค้างมาแล้ว</th><th>งาน</th></tr></thead><tbody>
-    ${L.map(q => `<tr><td>${esc(q.reqDept)}</td><td>${esc(q.name || q.empId)}</td><td>${thDate(q.date)}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 86400000) + ' วัน' : '–'}</td><td class="note-c">${esc(q.note || '')}</td></tr>`).join('')}
+    ${L.map(q => `<tr><td>${esc(q.reqDept)}</td><td>${esc(q.name || q.empId)}</td><td>${workDate(q.date)}</td><td>${tStamp(q.requestedAt)}${advTag(q)}</td><td class="warn">${q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 86400000) + ' วัน' : '–'}</td><td class="note-c">${esc(q.note || '')}</td></tr>`).join('')}
     </tbody></table></div></details>`;
 }
 
@@ -662,12 +678,12 @@ function renderDay() {
       cancelled: '<th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ยกเลิกโดย / เวลา</th><th>ก่อน 18:00</th><th>งาน</th>' }[c.k];
     const row = (r) => { const q = r.q || {}; const wait = q.requestedAt ? Math.floor((Date.now() - new Date(q.requestedAt)) / 3600000) : 0;
       const cells = { noReq: `<td>${time(r)}</td><td class="num strong">${fmt(r.ot)}</td><td class="note-c">${esc(r.note)}</td>`,
-        rejected: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td>`,
-        noShow: `<td>${time(r)}${r.lt ? ` <em class="t-l">${LTX[r.lt] || r.lt}</em>` : ''}</td><td>${tStamp(q.requestedAt)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td><td class="note-c">${esc(r.note)}${q.noShowAck ? ' <em class="t-h">หัวหน้ารับทราบแล้ว</em>' : ''}</td>`,
-        pending: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td class="warn">${wait >= 48 ? Math.floor(wait / 24) + ' วัน' : wait + ' ชม.'}</td><td class="note-c">${esc(q.note || '')}</td>`,
-        cancelled: `<td>${time(r)}</td><td class="num ${r.ot ? 'warn strong' : ''}">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}</td><td><b>${esc(q.cancelledBy || '–')}</b>${q.cancelledByRole ? ` <small class="muted">(${q.cancelledByRole === 'supervisor' ? 'หัวหน้างาน' : 'พนักงาน'})</small>` : ''}<br><small class="muted">${tStamp(q.cancelledAt)}${q.cancelledFromStatus ? ' · ก่อนยกเลิก: ' + (q.cancelledFromStatus === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ') : ''}</small></td><td>${r.before18 == null ? '–' : r.before18 ? '<em class="t-l">ก่อน 18:00</em>' : '<em class="t-a">หลัง 18:00</em>'}</td><td class="note-c">${esc(q.note || '')}</td>` }[c.k];
-      return `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td>${cells}</tr>`; };
-    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th>${head}</tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>`; };
+        rejected: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}${advTag(q)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td>`,
+        noShow: `<td>${time(r)}${r.lt ? ` <em class="t-l">${LTX[r.lt] || r.lt}</em>` : ''}</td><td>${tStamp(q.requestedAt)}${advTag(q)}</td><td>${decided(q)}</td><td class="note-c">${esc(q.note || '')}</td><td class="note-c">${esc(r.note)}${q.noShowAck ? ' <em class="t-h">หัวหน้ารับทราบแล้ว</em>' : ''}</td>`,
+        pending: `<td>${time(r)}</td><td class="num">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}${advTag(q)}</td><td class="warn">${wait >= 48 ? Math.floor(wait / 24) + ' วัน' : wait + ' ชม.'}</td><td class="note-c">${esc(q.note || '')}</td>`,
+        cancelled: `<td>${time(r)}</td><td class="num ${r.ot ? 'warn strong' : ''}">${r.ot ? fmt(r.ot) : '–'}</td><td>${tStamp(q.requestedAt)}${advTag(q)}</td><td><b>${esc(q.cancelledBy || '–')}</b>${q.cancelledByRole ? ` <small class="muted">(${q.cancelledByRole === 'supervisor' ? 'หัวหน้างาน' : 'พนักงาน'})</small>` : ''}<br><small class="muted">${tStamp(q.cancelledAt)}${q.cancelledFromStatus ? ' · ก่อนยกเลิก: ' + (q.cancelledFromStatus === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ') : ''}</small></td><td>${r.before18 == null ? '–' : r.before18 ? '<em class="t-l">ก่อน 18:00</em>' : '<em class="t-a">หลัง 18:00</em>'}</td><td class="note-c">${esc(q.note || '')}</td>` }[c.k];
+      return `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td>${workDate(iso)}</td>${cells}</tr>`; };
+    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th><th>วันที่ทำ OT</th>${head}</tr></thead><tbody>${L.map(row).join('')}</tbody></table></div>`; };
   // สรุปรายแผนก
   const depts = [...new Set(CATS.flatMap(c => R[c.k].map(r => r.dept)))].sort();
   $('#app').innerHTML = `
@@ -688,8 +704,8 @@ function renderDay() {
     ${depts.map(d => `<tr><td><b>${esc(d)}</b></td>${CATS.map(c => { const n = R[c.k].filter(r => r.dept === d).length; return `<td class="num ${n ? 'warn strong' : ''}">${n || '–'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div></section>` : ''}
   ${CATS.map((c, i) => `<section class="card" id="cat-${c.k}"><div class="card-h"><div><h2><span class="cbadge" style="background:${c.c}">${i + 1}</span>${c.t} <span class="muted">(${R[c.k].length} คน)</span></h2><div class="muted">${c.d}</div></div></div>${table(c)}${c.k === 'pending' ? backlog() : ''}</section>`).join('')}
   ${R.okDone.length ? `<section class="card"><details><summary class="okSum"><b>คำขอที่อนุมัติแล้ว และทำ OT ตามที่ขอ</b> <span class="muted">(${R.okDone.length} คน) — ดูชื่อผู้อนุมัติและเวลาอนุมัติ</span></summary>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th><th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ผู้อนุมัติ / เวลา</th><th>งาน</th></tr></thead><tbody>
-    ${R.okDone.map(r => `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td>${esc(r.tin || '–')} – ${esc(r.tout || '–')}</td><td class="num strong">${fmt(r.ot)}</td><td>${tStamp(r.q.requestedAt)}</td><td>${decided(r.q)}</td><td class="note-c">${esc(r.q.note || '')}</td></tr>`).join('')}
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>แผนก</th><th>รหัส</th><th>ชื่อ</th><th>วันที่ทำ OT</th><th>เวลาเข้า–ออก</th><th class="num">OT (ชม.)</th><th>ขอเมื่อ</th><th>ผู้อนุมัติ / เวลา</th><th>งาน</th></tr></thead><tbody>
+    ${R.okDone.map(r => `<tr class="click" data-emp="${esc(r.empId)}" data-edept="${esc(r.dept)}"><td>${esc(r.dept)}</td><td>${esc(r.empId)}</td><td><span class="link">${esc(r.name)}</span></td><td>${workDate(iso)}</td><td>${esc(r.tin || '–')} – ${esc(r.tout || '–')}</td><td class="num strong">${fmt(r.ot)}</td><td>${tStamp(r.q.requestedAt)}${advTag(r.q)}</td><td>${decided(r.q)}</td><td class="note-c">${esc(r.q.note || '')}</td></tr>`).join('')}
     </tbody></table></div></details></section>` : ''}
   <footer class="muted">คลิกที่ชื่อเพื่อดูปฏิทิน OT รายวันของคนนั้น · ดึงข้อมูลเมื่อ ${S.loadedAt.toLocaleString('th-TH')}</footer>
   <div id="tip" class="tip"></div><div id="drawer"></div>`;
@@ -803,21 +819,106 @@ function trendChart() {
   </svg>${months.includes(S.data.nowPrefix) ? '<div class="muted" style="font-size:12px">* เดือนปัจจุบัน ยังไม่ครบเดือน</div>' : ''}`;
 }
 
+// ---------- % OT ----------
+function workDaysInView() {
+  let n = 0; const today = S.data.todayIso;
+  rangeOf(S.from || S.month, S.month).forEach(p => { const [y, m] = p.split('-').map(Number); const nd = new Date(y, m, 0).getDate();
+    for (let d = 1; d <= nd; d++) { const iso = `${p}-${String(d).padStart(2, '0')}`; if (iso >= today) break; const wd = new Date(y, m - 1, d).getDay();
+      if (wd === 0 || wd === 6 || S.holidays.has(iso)) continue; n++; } });
+  return n;
+}
+const pctBar = (p) => `<span class="pbar"><i style="width:${Math.min(100, p * 2)}%"></i></span>${fmt(p)}%`;
+
+// ---------- OT แยกตามจ็อบ / งาน ----------
+const JOB_RE = /(?<![\d])(\d{1,2})\s*[-–_/.]\s*(\d{5,7})(?![\d])/g;
+const JOB_RE8 = /(?<![\d-])(0\d)(\d{6})(?![\d])/g;
+const BARE6 = /(?<![\d-])(\d{6})(?![\d])/g;
+function extractJobs(text) {
+  const t = String(text || ''); const out = new Set(); let m;
+  JOB_RE.lastIndex = 0; while ((m = JOB_RE.exec(t))) out.add(m[1].padStart(2, '0') + '-' + m[2]);
+  JOB_RE8.lastIndex = 0; while ((m = JOB_RE8.exec(t))) out.add(m[1] + '-' + m[2]);
+  const bare = []; BARE6.lastIndex = 0; while ((m = BARE6.exec(t))) bare.push(m[1]);
+  return { codes: [...out], bare };
+}
+function normText(t) { return String(t || '').replace(/\s+/g, ' ').replace(/^[\s,.\-+/]+|[\s,.\-+/]+$/g, '').trim(); }
+function buildJobs(recs) {
+  // คำขอโอที (หมายเหตุ/จ็อบที่พนักงานกรอกตอนขอ)
+  const reqNote = {}; (S.requests || []).forEach(q => { if (q.status === 'cancelled' || !q.note) return; const k = q.empId + '|' + q.date; const p = reqNote[k]; if (!p || String(q.requestedAt || '') > String(p.at)) reqNote[k] = { n: q.note, at: q.requestedAt || '' }; });
+  const ms = new Set(rangeOf(S.from || S.month, S.month));
+  const items = []; // {dept, empId, name, iso, ot, text}
+  recs.forEach(r => ms.forEach(p => {
+    const mg = (S.data.mergedBy[r.dept] || new Map()).get(r.empId); if (!mg) return;
+    S.data.E.dayList(r.empId, mg, p).forEach(d => { if (!(d.ot > 0)) return;
+      const rq = reqNote[r.empId + '|' + d.iso];
+      // ตัดข้อความเรื่องลา/ขาด/สาย/สแกน ออก ให้เหลือเฉพาะงานที่ทำ
+      const clean = (s) => String(s || '').split(/\s*[/+]\s*|\s*,\s*/).filter(x => x && !/^(ลา|ขาด|สาย|มาสาย|ป่วย|พักร้อน|ไม่ได้สแกน|สแกน|วันหยุด|หยุดงาน)/.test(x.trim())).join(' / ');
+      const text = [d.reason, rq && rq.n, d.hrNote].map(s => clean(s).trim()).filter(Boolean).filter((s, i, a) => a.indexOf(s) === i).join(' / ');
+      items.push({ dept: r.dept, empId: r.empId, name: r.name, iso: d.iso, ot: d.ot, text }); });
+  }));
+  // รหัสจ็อบเต็มทั้งหมด (ใช้จับคู่เลข 6 หลักที่ไม่มีหัว)
+  const known = new Set(); items.forEach(it => extractJobs(it.text).codes.forEach(c => known.add(c)));
+  const bySuffix = {}; known.forEach(c => { const s = c.split('-')[1]; (bySuffix[s] = bySuffix[s] || new Set()).add(c); });
+  const jobs = new Map(); const add = (key, label, kind, it, h) => { let j = jobs.get(key); if (!j) { j = { key, label, kind, hours: 0, people: new Map(), days: 0, depts: {} }; jobs.set(key, j); }
+    j.hours += h; j.days += 1; j.depts[it.dept] = (j.depts[it.dept] || 0) + h;
+    const p = j.people.get(it.empId) || { empId: it.empId, name: it.name, dept: it.dept, hours: 0, days: [] }; p.hours += h; p.days.push(it.iso); j.people.set(it.empId, p); };
+  items.forEach(it => {
+    const { codes, bare } = extractJobs(it.text); const all = new Set(codes);
+    bare.forEach(b => { const c = bySuffix[b]; if (c && c.size === 1) all.add([...c][0]); });
+    if (all.size) { const h = it.ot / all.size; all.forEach(c => add(c, c, 'job', it, h)); return; }
+    const t = normText(it.text.split(' / ')[0]);
+    if (!t) return add('__none', 'ไม่ระบุงาน / จ็อบ', 'none', it, it.ot);
+    const k = 'txt:' + t.toLowerCase().slice(0, 60); add(k, t.length > 60 ? t.slice(0, 60) + '…' : t, 'text', it, it.ot);
+  });
+  const totalH = items.reduce((s, it) => s + it.ot, 0);
+  const list = [...jobs.values()].sort((a, b) => b.hours - a.hours).map(j => ({ ...j, pct: totalH ? j.hours / totalH * 100 : 0, nPeople: j.people.size, mainDept: Object.entries(j.depts).sort((a, b) => b[1] - a[1]).map(x => x[0]).slice(0, 2).join(', ') }));
+  return { list, totalH, jobH: list.filter(j => j.kind === 'job').reduce((s, j) => s + j.hours, 0), noneH: (jobs.get('__none') || { hours: 0 }).hours };
+}
+function jobRows(J) {
+  const q = (S.jobQ || '').trim().toLowerCase();
+  const L = J.list.filter(j => !q || j.label.toLowerCase().includes(q) || j.mainDept.toLowerCase().includes(q));
+  const shown = q ? L : L.slice(0, 25);
+  if (!shown.length) return '<tr><td colspan="6" class="empty">ไม่พบ</td></tr>';
+  const max = Math.max(...shown.map(j => j.pct), 1);
+  return shown.map(j => `<tr class="click" data-job="${esc(j.key)}"><td>${j.kind === 'job' ? `<b class="jcode">${esc(j.label)}</b>` : j.kind === 'none' ? `<span class="muted">${esc(j.label)}</span>` : esc(j.label)}</td>
+    <td class="num strong">${fmt(j.hours)}</td><td class="num"><span class="pbar"><i style="width:${j.pct / max * 100}%"></i></span>${fmt(j.pct)}%</td><td class="num">${j.nPeople}</td><td class="num">${j.days}</td><td class="note-c">${esc(j.mainDept)}</td></tr>`).join('')
+    + (!q && L.length > 25 ? `<tr><td colspan="6" class="muted" style="text-align:center">แสดง 25 อันดับแรกจาก ${L.length} รายการ — พิมพ์ค้นหาเพื่อดูรายการอื่น</td></tr>` : '');
+}
+function jobCard(recs) {
+  const J = buildJobs(recs); S._jobs = J;
+  if (!J.totalH) return '';
+  return `<section class="card"><div class="card-h"><div><h2>OT แยกตามจ็อบ / งานที่ทำ</h2>
+    <div class="muted">จากหมายเหตุ/เลขจ็อบที่พนักงานกรอกในวันที่ทำ OT · เลขจ็อบที่เขียนต่างกันเล็กน้อย (เช่น 4-123456 กับ 04-123456) รวมเป็นจ็อบเดียว · วันที่ใส่หลายจ็อบแบ่งชั่วโมงเท่ากัน</div></div>
+    <input id="jobSearch" class="jsearch no-print" placeholder="ค้นหาจ็อบ / งาน / แผนก" value="${esc(S.jobQ || '')}"></div>
+    <div class="jsum"><span>OT รวม <b>${fmt(J.totalH)}</b> ชม.</span><span>ระบุเลขจ็อบ <b>${fmt(J.totalH ? J.jobH / J.totalH * 100 : 0)}%</b></span><span>ระบุเป็นข้อความ <b>${fmt(J.totalH ? (J.totalH - J.jobH - J.noneH) / J.totalH * 100 : 0)}%</b></span><span class="${J.noneH ? 'warn' : ''}">ไม่ระบุงาน <b>${fmt(J.totalH ? J.noneH / J.totalH * 100 : 0)}%</b></span></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>จ็อบ / งาน</th><th class="num">OT (ชม.)</th><th class="num">% ของ OT</th><th class="num">คน</th><th class="num">วัน-คน</th><th>แผนกหลัก</th></tr></thead><tbody id="jobBody">${jobRows(J)}</tbody></table></div></section>`;
+}
+function openJob(key) {
+  const j = (S._jobs.list || []).find(x => x.key === key); if (!j) return;
+  const P = [...j.people.values()].sort((a, b) => b.hours - a.hours);
+  $('#drawer').innerHTML = `<div class="ov" onclick="if(event.target===this)this.parentNode.innerHTML=''"><div class="sheet">
+    <div class="card-h"><div><h2>${esc(j.label)}</h2><div class="muted">${fmt(j.hours)} ชม. · ${fmt(j.pct)}% ของ OT · ${P.length} คน · ${rangeLabel(S.from || S.month, S.month)}</div></div><button class="ghost" onclick="document.getElementById('drawer').innerHTML=''">ปิด ✕</button></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>รหัส</th><th>ชื่อ</th><th>แผนก</th><th class="num">OT (ชม.)</th><th>วันที่</th></tr></thead><tbody>
+    ${P.map(p => `<tr class="click" data-emp="${esc(p.empId)}" data-edept="${esc(p.dept)}"><td>${esc(p.empId)}</td><td><span class="link">${esc(p.name)}</span></td><td>${esc(p.dept)}</td><td class="num strong">${fmt(p.hours)}</td><td class="note-c">${p.days.sort().map(d => `${+d.slice(8)}/${+d.slice(5, 7)}`).join(', ')}</td></tr>`).join('')}
+    </tbody></table></div></div></div>`;
+  bindEmp();
+}
+
 function deptTable(recs) {
   const m = byDept(recs);
-  const rows = Object.keys(m).map(k => ({ k, g: groupOf[k], ...m[k], avg: m[k].n ? m[k].ot / m[k].n : 0 }));
+  const wd = workDaysInView(), T0 = total(recs);
+  const rows = Object.keys(m).map(k => ({ k, g: groupOf[k], ...m[k], avg: m[k].n ? m[k].ot / m[k].n : 0, pct: m[k].n && wd ? m[k].ot / (m[k].n * wd * 8) * 100 : 0, share: T0.ot ? m[k].ot / T0.ot * 100 : 0 }));
   const sk = S.sortKey; rows.sort((a, b) => sk === 'k' ? a.k.localeCompare(b.k) : (b[sk] - a[sk]));
   const T = total(recs);
   const th = (key, label, cls = 'num') => `<th class="${cls} sortable ${sk === key ? 'sorted' : ''}" data-sort="${key}">${label}${sk === key ? ' ▾' : ''}</th>`;
   return `<div class="tbl-wrap"><table class="tbl">
-    <thead><tr>${th('k', 'แผนก', '')}<th>โรงงาน</th>${th('n', 'คน')}${th('ot', 'OT (ชม.)')}${th('avg', 'OT/คน')}${th('late', 'มาสาย (ครั้ง)')}${th('absentDays', 'ขาดงาน (วัน)')}${th('personal', 'ลากิจ (วัน)')}${th('sick', 'ลาป่วย (วัน)')}</tr></thead>
+    <thead><tr>${th('k', 'แผนก', '')}<th>โรงงาน</th>${th('n', 'คน')}${th('ot', 'OT (ชม.)')}${th('avg', 'OT/คน')}${th('pct', '% OT*')}${th('share', 'สัดส่วน OT')}${th('late', 'มาสาย (ครั้ง)')}${th('absentDays', 'ขาดงาน (วัน)')}${th('personal', 'ลากิจ (วัน)')}${th('sick', 'ลาป่วย (วัน)')}</tr></thead>
     <tbody>${rows.map(r => `<tr data-dept="${esc(r.k)}" class="click">
       <td><b>${esc(r.k)}</b></td><td><span class="gtag"><i style="background:${gInfo(r.g).color}"></i>${gInfo(r.g).label}</span></td>
-      <td class="num">${fmt(r.n, 0)}</td><td class="num strong">${fmt(r.ot)}</td><td class="num">${fmt(r.avg)}</td>
+      <td class="num">${fmt(r.n, 0)}</td><td class="num strong">${fmt(r.ot)}</td><td class="num">${fmt(r.avg)}</td><td class="num">${pctBar(r.pct)}</td><td class="num">${fmt(r.share)}%</td>
       <td class="num ${r.late ? 'warn' : ''}">${fmt(r.late, 0)}</td><td class="num ${r.absentDays ? 'warn' : ''}">${fmt(r.absentDays)}${r.absentHours ? `<small> +${fmt(r.absentHours)}ชม.</small>` : ''}</td>
       <td class="num">${fmt(r.personal)}</td><td class="num">${fmt(r.sick)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td>รวม</td><td></td><td class="num">${fmt(T.n, 0)}</td><td class="num">${fmt(T.ot)}</td><td class="num">${fmt(T.n ? T.ot / T.n : 0)}</td><td class="num">${fmt(T.late, 0)}</td><td class="num">${fmt(T.absentDays)}${T.absentHours ? `<small> +${fmt(T.absentHours)}ชม.</small>` : ''}</td><td class="num">${fmt(T.personal)}</td><td class="num">${fmt(T.sick)}</td></tr></tfoot>
-  </table></div>`;
+    <tfoot><tr><td>รวม</td><td></td><td class="num">${fmt(T.n, 0)}</td><td class="num">${fmt(T.ot)}</td><td class="num">${fmt(T.n ? T.ot / T.n : 0)}</td><td class="num">${fmt(T.n && wd ? T.ot / (T.n * wd * 8) * 100 : 0)}%</td><td class="num">100%</td><td class="num">${fmt(T.late, 0)}</td><td class="num">${fmt(T.absentDays)}${T.absentHours ? `<small> +${fmt(T.absentHours)}ชม.</small>` : ''}</td><td class="num">${fmt(T.personal)}</td><td class="num">${fmt(T.sick)}</td></tr></tfoot>
+  </table></div><div class="muted" style="font-size:12px;margin-top:6px">* % OT = ชั่วโมง OT ÷ (จำนวนคน × วันทำงานปกติ ${wd} วัน × 8 ชม.) · วันทำงานปกติ = จันทร์–ศุกร์ ไม่รวมวันหยุดบริษัท${S.month === S.data.nowPrefix ? ' (เดือนปัจจุบันนับถึงเมื่อวาน)' : ''} · สัดส่วน OT = OT ของแผนก ÷ OT รวมทั้งหมดในหน้านี้</div>`;
 }
 
 function top5(recs, title, val, label) {
